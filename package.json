@@ -1,0 +1,17 @@
+{
+  "name": "tagger-cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.26.1",
+    "googleapis": "^100.0.0",
+    "moment": "^2.29.1",
+    "prompts": "^2.4.2"
+  }
+}

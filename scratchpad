@@ -1,0 +1,64 @@
+/*
+function getMetrcActivePackages(callback) {
+    var config = {
+        method: 'get',
+        url: METRC_HOST + '/packages/v1/active?licenseNumber=' + METRC_LICENSE_NUMBER + '&lastModifiedStart=2022-03-30T00:00:00Z&lastModifiedEnd=2022-03-31T00:00:00Z',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token
+        },
+    };
+
+    axios(config)
+        .then(function (response) {
+            if (response.status == 200) {
+                if (response.data.results != null && response.data.count > 0) {
+                    var count = response.data.count;
+                    var results = response.data.results;
+                    callback("got back: " + count + " Orders to process");
+
+                    for (var i = 0; i < count; i++) {
+                        var customername = results[i].customer.display_name;
+                        console.log("customername: " + customername);
+                    }
+
+                    callback("success");
+
+                }
+                else
+                    callback("request failed");
+            }
+            else {
+                callback("request failed");
+            }
+        })
+        .catch(function (error) {
+            callback("exception");
+        });
+}
+*/
+var testpkg = [
+   
+    {
+        "Tag": "1A401030003F86A000017648",  // new dest tag
+        "Location": "SNW Outgoing", // 
+        "Item": "",  //sku will provide name,, 
+        "Quantity": 10.0,
+        "UnitOfMeasure": "Each",
+        "PatientLicenseNumber": "",  //ignore
+        "Note": "",  // leave blank. 
+        "IsProductionBatch": false,  //always false. 
+        "ProductionBatchNumber": null,    //null, ignore because false above. 
+        "IsDonation": false,  //comes from order same as trade sample !!!! ***** 
+        "ProductRequiresRemediation": false,
+        "UseSameItem": true,  //setting this to true ***************************
+        "ActualDate": "2022-04-29",   //is today... variable.  
+        "Ingredients": [   // this part comes from parent prodcut (inventory )
+            {
+                "Package": "1A401030003F86A000016399",  //parent tag this will come from look of sku from 
+                "Quantity": 10.0,
+                "UnitOfMeasure": "Each"
+            }
+        ]
+    }
+]
