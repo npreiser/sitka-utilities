@@ -1,12 +1,12 @@
 var axios = require('axios');
 const { google } = require('googleapis');
-const auth2 = require('./auth/auth_other.json');
+const auth2 = require('./auth/auth_other_test1.json');
 const LEAFLINK_HOST = "https://www.leaflink.com/api/v2";
-const LEAFLINK_API_KEY = auth2.ll_apikey;           //"App 5c9302f2873a6a25be7ccf5235333b38e7ff92317aed55c496793941689b6847";
+const LEAFLINK_API_KEY = auth2.ll_apikey;           
 const METRC_HOST = "https://api-or.metrc.com";
 const METRC_LICENSE_NUMBER = "060-101642295A9";
-const METRC_USERNAME = auth2.metrc_username;         //"EP4PTAmLqmU-H-MVQUVpqGIP9f6jUAENl9FgPAQ0KqFZ7Jcz";
-const METRC_PASSWORD = auth2.metrc_password;        // "Q9Q8K7ifDgji2JwxJc2je2XImFtx-RxT4MEodH0rBXQWnRVn";
+const METRC_USERNAME = auth2.metrc_username;        
+const METRC_PASSWORD = auth2.metrc_password;
 
 var token = "Basic " + btoa(METRC_USERNAME + ":" + METRC_PASSWORD);
 
@@ -52,15 +52,15 @@ var utils = module.exports = {
             const PROD_TAG_COL = 1;
             const PROD_SKU_COL = 2;
 
-            for(var i = 1; i < readData.data.values.length; i++)
-            {
+            for (var i = 1; i < readData.data.values.length; i++) {
                 // first row is header, skip. 
                 var prod = readData.data.values[i];
-                map[prod[PROD_SKU_COL]] = { "TAG": prod[PROD_TAG_COL], "NAME": prod[PROD_NAME_COL]  }
+                map[prod[PROD_SKU_COL]] = { "TAG": prod[PROD_TAG_COL], "NAME": prod[PROD_NAME_COL] }
             }
-            callback("success", map);  
+            callback("success", map);
         } catch (err1) {
-            callback("error", err1);
+            throw new Error("Error Fetching Google Master Product Sheet: " + err1.message);
+            // callback("error", err1);
         }
     },
 
@@ -79,24 +79,17 @@ var utils = module.exports = {
                 if (response.status == 200) {
                     if (response.data.results != null && response.data.count > 0) {
                         var results = response.data.results;
-                        // callback("got back: " + count + " Orders to process");
-                        //for (var i = 0; i < count; i++) {
-                        //    var customername = results[i].customer.display_name;
-                        //    console.log("customername: " + customername);
-                        //}
-
                         callback("success", results);
-
                     }
                     else
-                        callback("failed");
+                        throw new Error("Error Getting LeafLink Order List: " + "No data in results array");
                 }
                 else {
-                    callback("failed");
+                    throw new Error("Error Getting LeafLink Order List: " + "Repsonse code: " + response.status);
                 }
             })
             .catch(function (error) {
-                callback("exception");
+                throw new Error("Error Getting LeafLink Order List: " + error);
             });
     },
     getLeaflinkOrderInfo: async function (ordernumber, callback) {
@@ -117,46 +110,46 @@ var utils = module.exports = {
                         callback("success", results);
                     }
                     else
-                        callback("failed");
+                        throw new Error("Error Getting LeafLink Order Detail: " + "No data in results array");
                 }
                 else {
-                    callback("failed");
+                    throw new Error("Error Getting LeafLink Order Detail: " + "Repsonse code: " + response.status);
                 }
             })
             .catch(function (error) {
-                callback("exception");
+                throw new Error("Error Getting LeafLink Order Detail: " + error);
             });
     },
-    
 
-// just a test for now.. returns array 
- createMetrcPackages: async function(packagedata, callback) {
-    var config = {
-        method: 'post',
-        url: METRC_HOST + '/packages/v1/create?licenseNumber=' + METRC_LICENSE_NUMBER,
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': token
-        },
-        data: packagedata
-    };
 
-    await axios(config)
-        .then(function (response) {
-            if (response.status == 200) {
-                if (response != null && response.statusText == "OK") {
-                    callback("success");
+    // just a test for now.. returns array 
+    createMetrcPackages: async function (packagedata, callback) {
+        var config = {
+            method: 'post',
+            url: METRC_HOST + '/packages/v1/create?licenseNumber=' + METRC_LICENSE_NUMBER,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token
+            },
+            data: packagedata
+        };
+
+        await axios(config)
+            .then(function (response) {
+                if (response.status == 200) {
+                    if (response != null && response.statusText == "OK") {
+                        callback("success");
+                    }
+                    else
+                        throw new Error("Creating Metrc Package: " + "Unkown Error");
                 }
-                else
-                    callback("request failed, something in response is bad ");
-            }
-            else {
-                callback("request failed, bad status code");
-            }
-        })
-        .catch(function (error) {
-            callback("exception:" + error);
-        });
-}
-    
+                else {
+                    throw new Error("Creating Metrc Package: " + "Bad status code: " + response.status);
+                }
+            })
+            .catch(function (error) {
+                throw new Error("Creating Metrc Package: " + error);
+            });
+    }
+
 }

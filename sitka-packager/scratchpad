@@ -1,3 +1,20 @@
+// for google stuff: 
+/*
+in google console under project, make sure that the sheets api is enabled, 
+then under the api,  create new create new credentail (service account type)...
+this will  create an unique email address,  save it away,  you will share the doc/sheet with this email address. 
+Thne create a new key under that email address,  save it as json to compute,  this identifies your app..
+
+
+
+*/
+
+
+sitka-db-reader1@sitka-test1.iam.gserviceaccount.com  // 5/4/22 created. 
+
+https://www.section.io/engineering-education/google-sheets-api-in-nodejs/ // how to do google stuff. 
+
+
 /*
 function getMetrcActivePackages(callback) {
     var config = {
@@ -62,3 +79,7 @@ var testpkg = [
         ]
     }
 ]
+
+
+
+
