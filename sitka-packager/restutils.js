@@ -1,14 +1,16 @@
 var axios = require('axios');
 const { google } = require('googleapis');
-const auth2 = require('./auth/auth_other_test1.json');
+const auth2 = require('./auth/auth_other.json');
 const LEAFLINK_HOST = "https://www.leaflink.com/api/v2";
-const LEAFLINK_API_KEY = auth2.ll_apikey;           
+const LEAFLINK_API_KEY = auth2.ll_apikey;
 const METRC_HOST = "https://api-or.metrc.com";
 const METRC_LICENSE_NUMBER = "060-101642295A9";
-const METRC_USERNAME = auth2.metrc_username;        
+const METRC_USERNAME = auth2.metrc_username;
 const METRC_PASSWORD = auth2.metrc_password;
 
 var token = "Basic " + btoa(METRC_USERNAME + ":" + METRC_PASSWORD);
+
+const DEBUG_GOOGLE_SHEET = false;  //use my debug sheet for sku check,. 
 
 var utils = module.exports = {
 
@@ -28,8 +30,18 @@ var utils = module.exports = {
             const googleSheetsInstance = google.sheets({ version: "v4", auth: authClientObject });
 
             // spreadsheet id
-            const spreadsheetId = "17tokFn7aMg1DBr93lrseNAnMrtSSh2rh3RWOgG62414";  // test sheet sitka_testdata1
+            var spreadsheetId = undefined;
+            var SHEET_RANGE = undefined;
+            if (DEBUG_GOOGLE_SHEET) {
+                spreadsheetId = "17tokFn7aMg1DBr93lrseNAnMrtSSh2rh3RWOgG62414";  // test sheet sitka_testdata1
+                SHEET_RANGE = "Products!A1:C5";
+            }
+            else {
+                spreadsheetId = "1fKVhIlVDRXbpueHxG9rL2AowXtIrzidUAyylLIAMjqs";  // test sheet sitka_testdata1
+                SHEET_RANGE = "SKU Master List!A1:C250";
+            }
 
+            // const spreadsheetId = "1fKVhIlVDRXbpueHxG9rL2AowXtIrzidUAyylLIAMjqs"  // sitka SKU MASTER LIST 
             //const spreadsheetId = "1KvEGCZ22owF9goef25iQuRJvc2FZzaKY_EGAKUoe-2o";
 
             // Get metadata about spreadsheet
@@ -42,15 +54,15 @@ var utils = module.exports = {
             const readData = await googleSheetsInstance.spreadsheets.values.get({
                 auth, //auth object
                 spreadsheetId, // spreadsheet id
-                range: "Products!A1:C5", //range of cells to read from.
+                range: SHEET_RANGE, // "Products!A1:C5", //range of cells to read from.
                 //range: "Badder / Sauce / Wax / Crumble / Live Resin!A1:B5"
             })
             // NOTES:  plan to return a bunch of different stuff in the callback from the various sheet.s 
             //prodcut data,  return a map
             var map = new Object();  // so we can look up by sku
             const PROD_NAME_COL = 0;
-            const PROD_TAG_COL = 1;
-            const PROD_SKU_COL = 2;
+            const PROD_SKU_COL = 1;
+            const PROD_TAG_COL = 2;
 
             for (var i = 1; i < readData.data.values.length; i++) {
                 // first row is header, skip. 
@@ -89,7 +101,10 @@ var utils = module.exports = {
                 }
             })
             .catch(function (error) {
-                throw new Error("Error Getting LeafLink Order List: " + error);
+                if (error.response != undefined && error.response.data != undefined)
+                    throw new Error("Error Getting LeafLink Order List: " + JSON.stringify(error.response.data, null, 2));
+                else
+                    throw new Error("Error Getting LeafLink Order List: " + error);
             });
     },
     getLeaflinkOrderInfo: async function (ordernumber, callback) {
@@ -117,7 +132,10 @@ var utils = module.exports = {
                 }
             })
             .catch(function (error) {
-                throw new Error("Error Getting LeafLink Order Detail: " + error);
+                if (error.response != undefined && error.response.data != undefined)
+                    throw new Error("Error Getting LeafLink Order Detail: " + JSON.stringify(error.response.data, null, 2));
+                else
+                    throw new Error("Error Getting LeafLink Order Detail: " + error);
             });
     },
 
@@ -148,7 +166,11 @@ var utils = module.exports = {
                 }
             })
             .catch(function (error) {
-                throw new Error("Creating Metrc Package: " + error);
+                if (error.response != undefined && error.response.data != undefined)
+                    throw new Error("Creating Metrc Package: " + JSON.stringify(error.response.data, null, 2));
+                else
+                    throw new Error("Creating Metrc Package: " + error);
+
             });
     }
 

@@ -14,15 +14,18 @@ var orders_map = new Object();
 var lineitemcount = 0;
 var master_product_map = undefined;
 
+const DEBUG_MODE = true;  // if on, will filter down order to chrisBs,  and only process those. 
+const OVERRIDE_PROMPTS = true;
+
 // This function creates all the blobs per order , starting at start tag.
 // the blobs are placed into the order_map, on a per order  
 function constructMetrcPackageBlob(starttag) {
 
-
+    console.log("Based on start tag, building payloads for each line item in each order now.")
     var currenttag = starttag;
     for (var key in orders_map) {  // for each accepted order,
         try {
-           
+
             var order_packages = [];
             var order = orders_map[key]
             for (var li = 0; li < order.line_items.length; li++)  // for each line item in the order. 
@@ -55,6 +58,8 @@ function constructMetrcPackageBlob(starttag) {
         }
     }
 
+    console.log("Success building payload packages. ")
+
 }
 
 async function runner() {
@@ -67,9 +72,6 @@ async function runner() {
                 master_product_map = productmap;
 
             }// shold never get past here. 
-            // else {
-            //   Last_ERROR = "could not get product master list from google sheets";
-            //}
         })
 
         console.log("Fetching Accepted order list.  ")
@@ -79,16 +81,7 @@ async function runner() {
                 console.log("Got LeafLink Order List");
                 accepted_orders = data;
             }
-            //else {
-            //   console.log("could not get accepted orders, error")
-            //   return;
-            //}
         })
-
-        //for debug:  change ordre number to unknown number: 
-        //accepted_orders[2].number = "alsdkfjslkfdjsl"
-        // end debug. 
-
 
 
         console.log("Fetching Order info for each accepted order now, order count: " + accepted_orders.length)
@@ -100,30 +93,43 @@ async function runner() {
                     orders_map[accepted_orders[i].number] = data[0];  // store it.. 
                     lineitemcount += data[0].line_items.length;
                 }
-                // else {
-                //    console.log("could not get order info, error: " + accepted_orders[i].number);
-                //   Last_ERROR = "Cant get order detail: " + accepted_orders[i].number
-                //   return;
-                //}
-
             })
         }
 
         console.log("Done fetching all order info from LeafLink");
-        console.log("Total line items counted: " + lineitemcount);
-        console.log("Checking all ordered products are in inventroy database")
 
-        // for debug ,  remove all order except the ones created by chris..********************
-        for (var key in orders_map) {  // for each accepted order,
-            var order = orders_map[key];
-            var customername = order.customer.display_name;
-            if (!customername.includes("Noble Lord Bauer"))
-                delete orders_map[key];
+
+        // **********  for debug ,  remove all order except the ones created by chris..********************
+        // ************************************************************************************************
+        if (DEBUG_MODE) {
+            console.log("-- DEBUG MODE: filtering order down now ")
+            lineitemcount = 0;
+            for (var key in orders_map) {  // for each accepted order,
+                var order = orders_map[key];
+                var customername = order.customer.display_name;
+                if (!customername.includes("Noble Lord Bauer")) {
+                    delete orders_map[key];
+                }
+                else
+                    lineitemcount += order.line_items.length;
+            }
+
+
+            // reduce to one key for now: 
+            delete orders_map["3cadfb42-047a-4603-80ec-fcc856985a25"];
+            lineitemcount = 4; // final test. 
         }
-        //end debug. ******************************************************************************
 
+
+
+        //end debug. ******************************************************************************
+        // **********************************************************************************************
+
+        console.log("Total Orders: " + Object.keys(orders_map).length)
+        console.log("Total line items: " + lineitemcount);
 
         // Validate all line items are in the inventory list 
+        console.log("Validating all order line items against the Master SKU LIST")
         for (var key in orders_map) {  // for each accepted order,
             var order = orders_map[key]
             //console.log(JSON.stringify(order, null, 2))
@@ -139,36 +145,60 @@ async function runner() {
                 }
             }
         }
+        console.log("Success validating line items against SKUs")
 
+
+        console.log("You have " + Object.keys(orders_map).length + " orders to process which contain " + lineitemcount + " total line items")
         const questions = [
             {
                 type: 'text',
                 name: 'start_tag',
-                message: 'Start Tag #'
+                message: 'Enter Start Tag #'
             }
         ];
+
+        const q2 = [
+            {
+                type: 'text',
+                name: 'confirm',
+                message: 'Are you sure you want to continue, type y to continue,  or n to cancel'
+            }
+        ];
+
         //// PROMPT IS HERE !!! **************************************************
-        // const response = await prompts(questions);
-        //console.log("got value: " + response.start_tag);
+        //var starttag = 17660; //DEBUG FORCE
+        
+        const response = await prompts(questions);  // PROMPT #1 (start tag)
+        var starttag = response.start_tag;
+        console.log("Confirm you have enough tags to fullfill this build now!!! ")
+        console.log("With start tag number: " + starttag + " your end tag will be " + (parseInt(starttag) + lineitemcount - 1));
 
-        // validate start tag here. 
-        // Add check for tag count limit check here !!!!!!!!!!!!!!!!!!
+        const resp2 = await prompts(q2)  // PROMPT #2 (confirmation)
+        if (resp2.confirm == 'y') {
 
-        //TODO,  validate tag range.. 
-        var starttag = 17660; //DEBUG
-        //var starttag = response.start_tag;
-        constructMetrcPackageBlob(starttag);  // puts blobs into orders map.. throws error 
+            constructMetrcPackageBlob(starttag);  // puts blobs into orders map.. throws error 
 
-        for (var key in orders_map) {  // for each accepted order,
-            var order = orders_map[key];
-            console.log("Tagging Order: " + order.short_id + " from: " + order.customer.display_name + " --  " + order.line_items.length + " line items")
-            //console.log(JSON.stringify(order.metrc_payload, null, 2));
-            await restutils.createMetrcPackages(order.metrc_payload, function (status) {
-                console.log("Result: " + status)
-            })
+            console.log("Starting to dispatch packages to Metrc");
+            for (var key in orders_map) {  // for each accepted order,
+                var order = orders_map[key];
+                console.log("Tagging Order: " + order.short_id + " from: " + order.customer.display_name + " --  " + order.line_items.length + " line items");
+                console.log("Order Tag range: " + order.metrc_payload[0].Tag + " ---> " + order.metrc_payload[order.metrc_payload.length - 1].Tag)
+                //console.log(JSON.stringify(order.metrc_payload, null, 2));
+                await restutils.createMetrcPackages(order.metrc_payload, function (status) {
+                    console.log("Result: " + status)
+                })
+            }
         }
+        else {
+            console.log("Cancelling packaging run");
+            throw new Error("User Cancelled Build");
+        }
+
+
+
+
     } catch (err) {
-        console.log("ERROR: " + err.message)
+        console.log("ERROR: " + err.message + "  ===> Terminating Sequence now. ")
     }
 }
 
