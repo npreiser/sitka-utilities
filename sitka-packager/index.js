@@ -14,8 +14,14 @@ var orders_map = new Object();
 var lineitemcount = 0;
 var master_product_map = undefined;
 
-const DEBUG_MODE = true;  // if on, will filter down order to chrisBs,  and only process those. 
-const OVERRIDE_PROMPTS = true;
+// ONLY PROCESS FIRST ORDER IN LIST
+const DEBUG_PROCESS_ONLY_FIRST_ORDER = true; //set true to only process first ordrer in list 
+
+// CBAUER order only. -- set true to filter order list to only his order. 
+const DEBUG_FOR_CBAUER_ORDERS = false;
+
+// DEBUG PROMPT STATRT TAG,  set to true for release,  set to false for debug under ide. 
+const DEBUG_PROMPT_START_TAG = true;
 
 // This function creates all the blobs per order , starting at start tag.
 // the blobs are placed into the order_map, on a per order  
@@ -101,8 +107,8 @@ async function runner() {
 
         // **********  for debug ,  remove all order except the ones created by chris..********************
         // ************************************************************************************************
-        if (DEBUG_MODE) {
-            console.log("-- DEBUG MODE: filtering order down now ")
+        if (DEBUG_FOR_CBAUER_ORDERS) {
+            console.log(" **** DEBUG **** : Filtering order list to ONLY CHRIS BAUERS ORDERS.")
             lineitemcount = 0;
             for (var key in orders_map) {  // for each accepted order,
                 var order = orders_map[key];
@@ -114,13 +120,29 @@ async function runner() {
                     lineitemcount += order.line_items.length;
             }
 
-
+            // ngp, cant remember why I did this ??? 6/25/22
             // reduce to one key for now: 
             delete orders_map["3cadfb42-047a-4603-80ec-fcc856985a25"];
             lineitemcount = 4; // final test. 
         }
 
 
+        if (DEBUG_PROCESS_ONLY_FIRST_ORDER)  // remove all but first item in order list. 
+        {
+            console.log("*** DEBUG ***: filtering order list to only the first ORDER ")
+            lineitemcount = 0;  //reset line item count
+            var count = 0;
+            for (var key in orders_map) {  // for each accepted order,
+                if (count == 0) {
+                    var order = orders_map[key];
+                    lineitemcount += order.line_items.length;
+                    count = 1;
+                }
+                else
+                    delete orders_map[key]; //delete all other orders. 
+
+            }
+        }
 
         //end debug. ******************************************************************************
         // **********************************************************************************************
@@ -148,7 +170,7 @@ async function runner() {
         console.log("Success validating line items against SKUs")
 
 
-        console.log("You have " + Object.keys(orders_map).length + " orders to process which contain " + lineitemcount + " total line items")
+        console.log("You have " + Object.keys(orders_map).length + " orders to process that contains " + lineitemcount + " total line items")
         const questions = [
             {
                 type: 'text',
@@ -166,15 +188,22 @@ async function runner() {
         ];
 
         //// PROMPT IS HERE !!! **************************************************
-        //var starttag = 17660; //DEBUG FORCE
-        
-        const response = await prompts(questions);  // PROMPT #1 (start tag)
-        var starttag = response.start_tag;
+        var starttag = 25037; //DEBUG FORCE  
+        if (DEBUG_PROMPT_START_TAG == true) {
+            const response = await prompts(questions);  // PROMPT #1 (start tag)
+            starttag = response.start_tag;
+        }
+
         console.log("Confirm you have enough tags to fullfill this build now!!! ")
         console.log("With start tag number: " + starttag + " your end tag will be " + (parseInt(starttag) + lineitemcount - 1));
 
-        const resp2 = await prompts(q2)  // PROMPT #2 (confirmation)
-        if (resp2.confirm == 'y') {
+        var confirm_continue = 'y';
+        if (DEBUG_PROMPT_START_TAG == true) {
+            const resp2 = await prompts(q2)  // PROMPT #2 (confirmation)
+            confirm_continue = resp2.confirm;
+        }
+
+        if (confirm_continue == 'y') {
 
             constructMetrcPackageBlob(starttag);  // puts blobs into orders map.. throws error 
 
