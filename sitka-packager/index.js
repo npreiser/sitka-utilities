@@ -153,7 +153,7 @@ async function runner() {
 
         // Validate all line items are in the inventory list 
         console.log("Validating all order line items against the Master SKU LIST");
-       var lineitem_omitted_count = 0;
+        var lineitem_omitted_count = 0;
         for (var key in orders_map) {  // for each accepted order,
             var order = orders_map[key]
             //console.log(JSON.stringify(order, null, 2))
@@ -162,17 +162,17 @@ async function runner() {
                 var lineitem = order.line_items[li];
                 var product_detail = lineitem.frozen_data.product;
                 var sku = product_detail.sku;
-                
+
                 //7/16/22 if line item is in the omit list, remove the item from order
-                if(omit_skus_map[sku] != undefined) // sku for this line item is in the omit map... 
+                if (omit_skus_map[sku] != undefined) // sku for this line item is in the omit map... 
                 {
-                    console.log("Removing(omiting) line item sku: " + sku + " from order: "+ order.short_id)
-                    order.line_items.splice(li,1);
+                    console.log("Removing(omiting) line item sku: " + sku + " from order: " + order.short_id)
+                    order.line_items.splice(li, 1);
                     li = 0;// start over on this order just in case. (want to make sure we get all omissions) 
                     lineitem_omitted_count++;
                     continue;
                 }
-                
+
 
                 // check sku is in master prod map
                 if (master_product_map[sku] == undefined) {
