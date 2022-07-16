@@ -31,35 +31,37 @@ var utils = module.exports = {
 
             // spreadsheet id
             var spreadsheetId = undefined;
-            var SHEET_RANGE = undefined;
+            var SKU_ML_SHEET_RANGE = undefined;
+
             if (DEBUG_GOOGLE_SHEET) {
                 spreadsheetId = "17tokFn7aMg1DBr93lrseNAnMrtSSh2rh3RWOgG62414";  // test sheet sitka_testdata1
-                SHEET_RANGE = "Products!A1:C5";
+                SKU_ML_SHEET_RANGE = "Products!A1:C5";
             }
             else {
                 spreadsheetId = "1fKVhIlVDRXbpueHxG9rL2AowXtIrzidUAyylLIAMjqs";  // test sheet sitka_testdata1
-                SHEET_RANGE = "SKU Master List!A1:C250";
+                SKU_ML_SHEET_RANGE = "SKU Master List!A1:C250";
             }
 
+            var OMIT_SKU_SHEET_RANGE = "Omit SKUs!A1:B50";
             // const spreadsheetId = "1fKVhIlVDRXbpueHxG9rL2AowXtIrzidUAyylLIAMjqs"  // sitka SKU MASTER LIST 
             //const spreadsheetId = "1KvEGCZ22owF9goef25iQuRJvc2FZzaKY_EGAKUoe-2o";
 
             // Get metadata about spreadsheet
-            const sheetInfo = await googleSheetsInstance.spreadsheets.get({
-                auth,
-                spreadsheetId,
-            });
+           // const sheetInfo = await googleSheetsInstance.spreadsheets.get({
+           //     auth,
+            //    spreadsheetId,
+           // });
 
             //Read from the spreadsheet    //returns array of arrays,  in  test case 3 columns,
             const readData = await googleSheetsInstance.spreadsheets.values.get({
                 auth, //auth object
                 spreadsheetId, // spreadsheet id
-                range: SHEET_RANGE, // "Products!A1:C5", //range of cells to read from.
+                range: SKU_ML_SHEET_RANGE, // "Products!A1:C5", //range of cells to read from.
                 //range: "Badder / Sauce / Wax / Crumble / Live Resin!A1:B5"
             })
             // NOTES:  plan to return a bunch of different stuff in the callback from the various sheet.s 
             //prodcut data,  return a map
-            var map = new Object();  // so we can look up by sku
+            var products_map = new Object();  // so we can look up by sku
             const PROD_NAME_COL = 0;
             const PROD_SKU_COL = 1;
             const PROD_TAG_COL = 2;
@@ -67,9 +69,26 @@ var utils = module.exports = {
             for (var i = 1; i < readData.data.values.length; i++) {
                 // first row is header, skip. 
                 var prod = readData.data.values[i];
-                map[prod[PROD_SKU_COL]] = { "TAG": prod[PROD_TAG_COL], "NAME": prod[PROD_NAME_COL] }
+                products_map[prod[PROD_SKU_COL]] = { "TAG": prod[PROD_TAG_COL], "NAME": prod[PROD_NAME_COL] }
             }
-            callback("success", map);
+
+            //7/16/22 call for Ignore list: *************************************************
+            const readOmitData = await googleSheetsInstance.spreadsheets.values.get({
+                auth, //auth object
+                spreadsheetId, // spreadsheet id
+                range: OMIT_SKU_SHEET_RANGE, 
+            })
+            // convert return data  into omit map by sku,  
+            var omit_map = new Object();
+            for (var i = 1; i < readOmitData.data.values.length; i++) {
+                // first row is header, skip. 
+                var prod = readOmitData.data.values[i];
+                omit_map[prod[PROD_SKU_COL]] = { "NAME": prod[PROD_NAME_COL] }
+            }
+
+
+            // send back the data 
+            callback("success", products_map, omit_map);
         } catch (err1) {
             throw new Error("Error Fetching Google Master Product Sheet: " + err1.message);
             // callback("error", err1);

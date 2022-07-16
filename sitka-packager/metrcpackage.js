@@ -15,7 +15,9 @@ function MetrcPackage(tag, qty, isdonation, parenttag)
     this.Note = ""; //blank;
     this.IsProductionBatch = false;
     this.ProductionBatchNumber = null;  //ignroe, false abovel;
-    this.IsDonation = isdonation;  // same as trade sample;
+    this.IsTradeSample = isdonation;  //6/30/22 tests
+    // "confirmatin required filed??? "
+   // this.IsDonation = isdonation;  // same as trade sample;
     this.ProductRequiresRemediation = false;
     this.UseSameItem = true;  //fixed. 
     this.ActualDate = datestr;  // YYYY-MM-DD

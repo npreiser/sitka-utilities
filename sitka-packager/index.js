@@ -13,6 +13,7 @@ var accepted_orders = [];
 var orders_map = new Object();
 var lineitemcount = 0;
 var master_product_map = undefined;
+var omit_skus_map = undefined;
 
 // ONLY PROCESS FIRST ORDER IN LIST
 const DEBUG_PROCESS_ONLY_FIRST_ORDER = true; //set true to only process first ordrer in list 
@@ -21,7 +22,7 @@ const DEBUG_PROCESS_ONLY_FIRST_ORDER = true; //set true to only process first or
 const DEBUG_FOR_CBAUER_ORDERS = false;
 
 // DEBUG PROMPT STATRT TAG,  set to true for release,  set to false for debug under ide. 
-const DEBUG_PROMPT_START_TAG = true;
+const DEBUG_PROMPT_START_TAG = false;
 
 // This function creates all the blobs per order , starting at start tag.
 // the blobs are placed into the order_map, on a per order  
@@ -72,11 +73,11 @@ async function runner() {
 
     try {
         console.log("Fetching Product Master list from Google Sheets ")
-        await restutils.getProductMasterList(function (status, productmap) {
+        await restutils.getProductMasterList(function (status, productmap, omitmap) {
             if (status == 'success') {
-                console.log("Got Product master list from google. Stored");
+                console.log("Got Product master list and omit item list from google. Stored");
                 master_product_map = productmap;
-
+                omit_skus_map = omitmap;
             }// shold never get past here. 
         })
 
@@ -148,10 +149,11 @@ async function runner() {
         // **********************************************************************************************
 
         console.log("Total Orders: " + Object.keys(orders_map).length)
-        console.log("Total line items: " + lineitemcount);
+        console.log("Pre-Validation Total line items: " + lineitemcount);
 
         // Validate all line items are in the inventory list 
-        console.log("Validating all order line items against the Master SKU LIST")
+        console.log("Validating all order line items against the Master SKU LIST");
+       var lineitem_omitted_count = 0;
         for (var key in orders_map) {  // for each accepted order,
             var order = orders_map[key]
             //console.log(JSON.stringify(order, null, 2))
@@ -160,15 +162,28 @@ async function runner() {
                 var lineitem = order.line_items[li];
                 var product_detail = lineitem.frozen_data.product;
                 var sku = product_detail.sku;
+                
+                //7/16/22 if line item is in the omit list, remove the item from order
+                if(omit_skus_map[sku] != undefined) // sku for this line item is in the omit map... 
+                {
+                    console.log("Removing(omiting) line item sku: " + sku + " from order: "+ order.short_id)
+                    order.line_items.splice(li,1);
+                    li = 0;// start over on this order just in case. (want to make sure we get all omissions) 
+                    lineitem_omitted_count++;
+                    continue;
+                }
+                
+
                 // check sku is in master prod map
                 if (master_product_map[sku] == undefined) {
                     throw new Error("From order: " + order.short_id + " could not find sku: " + sku + "  name: " + product_detail.name + " in Google Master sheet")
-
                 }
             }
         }
         console.log("Success validating line items against SKUs")
 
+        // adjust total line item count:
+        lineitemcount -= lineitem_omitted_count;
 
         console.log("You have " + Object.keys(orders_map).length + " orders to process that contains " + lineitemcount + " total line items")
         const questions = [
@@ -188,7 +203,7 @@ async function runner() {
         ];
 
         //// PROMPT IS HERE !!! **************************************************
-        var starttag = 25037; //DEBUG FORCE  
+        var starttag = 30100; //DEBUG FORCE  
         if (DEBUG_PROMPT_START_TAG == true) {
             const response = await prompts(questions);  // PROMPT #1 (start tag)
             starttag = response.start_tag;
