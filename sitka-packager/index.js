@@ -15,6 +15,7 @@ var lineitemcount = 0;
 var master_product_map = undefined;
 var omit_skus_map = undefined;
 
+
 // ONLY PROCESS FIRST ORDER IN LIST
 const DEBUG_PROCESS_ONLY_FIRST_ORDER = true; //set true to only process first ordrer in list 
 
@@ -22,7 +23,7 @@ const DEBUG_PROCESS_ONLY_FIRST_ORDER = true; //set true to only process first or
 const DEBUG_FOR_CBAUER_ORDERS = false;
 
 // DEBUG PROMPT STATRT TAG,  set to true for release,  set to false for debug under ide. 
-const DEBUG_PROMPT_START_TAG = false;
+const DEBUG_PROMPT_START_TAG = true;
 
 // This function creates all the blobs per order , starting at start tag.
 // the blobs are placed into the order_map, on a per order  
@@ -228,9 +229,19 @@ async function runner() {
                 console.log("Tagging Order: " + order.short_id + " from: " + order.customer.display_name + " --  " + order.line_items.length + " line items");
                 console.log("Order Tag range: " + order.metrc_payload[0].Tag + " ---> " + order.metrc_payload[order.metrc_payload.length - 1].Tag)
                 //console.log(JSON.stringify(order.metrc_payload, null, 2));
-                await restutils.createMetrcPackages(order.metrc_payload, function (status) {
-                    console.log("Result: " + status)
-                })
+
+                // 7/18/22 chunk the package into calls of 20 at a time. 
+                const chunkSize = 20;  // chunk size is how many metrc pkgs tosend up each call for the order. 
+
+                for (let pkgidx = 0; pkgidx < order.metrc_payload.length; pkgidx += chunkSize) {
+                    const chunk = order.metrc_payload.slice(pkgidx, pkgidx + chunkSize);
+                    // make call. 
+                    await restutils.createMetrcPackages(chunk, function (status) {
+                        console.log("Result: " + status)
+                    })
+                }
+
+              
             }
         }
         else {
