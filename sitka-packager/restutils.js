@@ -39,7 +39,7 @@ var utils = module.exports = {
             }
             else {
                 spreadsheetId = "1fKVhIlVDRXbpueHxG9rL2AowXtIrzidUAyylLIAMjqs";  // test sheet sitka_testdata1
-                SKU_ML_SHEET_RANGE = "SKU Master List!A1:C250";
+                SKU_ML_SHEET_RANGE = "SKU Master List!A1:C350";
             }
 
             var OMIT_SKU_SHEET_RANGE = "Omit SKUs!A1:B50";
