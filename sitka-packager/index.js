@@ -231,14 +231,16 @@ async function runner() {
                 //console.log(JSON.stringify(order.metrc_payload, null, 2));
 
                 // 7/18/22 chunk the package into calls of 20 at a time. 
-                const chunkSize = 20;  // chunk size is how many metrc pkgs tosend up each call for the order. 
-
+                const chunkSize = 10;  // chunk size is how many metrc pkgs tosend up each call for the order. 
+                var bundlenumber = 1;
                 for (let pkgidx = 0; pkgidx < order.metrc_payload.length; pkgidx += chunkSize) {
                     const chunk = order.metrc_payload.slice(pkgidx, pkgidx + chunkSize);
                     // make call. 
+                     console.log("Sending Bundle: " + bundlenumber);
                     await restutils.createMetrcPackages(chunk, function (status) {
                         console.log("Result: " + status)
                     })
+                    bundlenumber++;
                 }
 
               
