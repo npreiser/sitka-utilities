@@ -25,6 +25,11 @@ const DEBUG_FOR_CBAUER_ORDERS = false;
 // DEBUG PROMPT STATRT TAG,  set to true for release,  set to false for debug under ide. 
 const DEBUG_PROMPT_START_TAG = true;
 
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // This function creates all the blobs per order , starting at start tag.
 // the blobs are placed into the order_map, on a per order  
 function constructMetrcPackageBlob(starttag) {
@@ -71,6 +76,8 @@ function constructMetrcPackageBlob(starttag) {
 }
 
 async function runner() {
+
+   
 
     try {
         console.log("Fetching Product Master list from Google Sheets ")
@@ -240,6 +247,9 @@ async function runner() {
                     await restutils.createMetrcPackages(chunk, function (status) {
                         console.log("Result: " + status)
                     })
+
+                    await sleep(500);  // X ms sec delay between chunk calls 
+                    
                     bundlenumber++;
                 }
 
