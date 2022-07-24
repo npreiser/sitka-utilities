@@ -6,6 +6,7 @@ const prompts = require('prompts');
 const REUP_BASE_TAG = "1A401030003F86A"
 let metrcpkg = require('./metrcpackage');
 const { Console } = require('console');
+
 let MetrcPkg = metrcpkg.MetrcPackage;
 // NOTE,  remainder postfix eg. = 000017647     9 chars
 // you have atleast one param: 
@@ -14,7 +15,6 @@ var orders_map = new Object();
 var lineitemcount = 0;
 var master_product_map = undefined;
 var omit_skus_map = undefined;
-
 
 // ONLY PROCESS FIRST ORDER IN LIST
 const DEBUG_PROCESS_ONLY_FIRST_ORDER = true; //set true to only process first ordrer in list 
@@ -25,6 +25,7 @@ const DEBUG_FOR_CBAUER_ORDERS = false;
 // DEBUG PROMPT STATRT TAG,  set to true for release,  set to false for debug under ide. 
 const DEBUG_PROMPT_START_TAG = true;
 
+var logger = require('./log.js');
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -34,7 +35,7 @@ function sleep(ms) {
 // the blobs are placed into the order_map, on a per order  
 function constructMetrcPackageBlob(starttag) {
 
-    console.log("Based on start tag, building payloads for each line item in each order now.")
+    logger.info("Based on start tag, building payloads for each line item in each order now.")
     var currenttag = starttag;
     for (var key in orders_map) {  // for each accepted order,
         try {
@@ -71,37 +72,40 @@ function constructMetrcPackageBlob(starttag) {
         }
     }
 
-    console.log("Success building payload packages. ")
+    logger.info("Success building payload packages. ")
 
 }
 
+function extractItemSkus(item)
+{
+    return item.frozen_data.product.sku;
+}
 async function runner() {
 
-   
-
     try {
-        console.log("Fetching Product Master list from Google Sheets ")
+
+        logger.info("Fetching Product Master list from Google Sheets");
         await restutils.getProductMasterList(function (status, productmap, omitmap) {
             if (status == 'success') {
-                console.log("Got Product master list and omit item list from google. Stored");
+                logger.info("Got Product master list and omit item list from google. Stored");
                 master_product_map = productmap;
                 omit_skus_map = omitmap;
             }// shold never get past here. 
         })
 
-        console.log("Fetching Accepted order list.  ")
+        logger.info("Fetching Accepted order list.  ")
         await restutils.getLeaflinkAcceptedOrders(function (status, data) {
             // returned data is an array of orders
             if (status == 'success') {
-                console.log("Got LeafLink Order List");
+                logger.info("Got LeafLink Order List");
                 accepted_orders = data;
             }
         })
 
 
-        console.log("Fetching Order info for each accepted order now, order count: " + accepted_orders.length)
+        logger.info("Fetching Order info for each accepted order now, order count: " + accepted_orders.length)
         for (var i = 0; i < accepted_orders.length; i++) {
-            console.log("getting details for order number: " + accepted_orders[i].number);
+            logger.info("getting details for order number: " + accepted_orders[i].number);
             await restutils.getLeaflinkOrderInfo(accepted_orders[i].number, function (status, data) {
                 if (status == 'success')   // note, data is an array, which we want index 0 of. 
                 {
@@ -111,13 +115,13 @@ async function runner() {
             })
         }
 
-        console.log("Done fetching all order info from LeafLink");
-
+        logger.info("Done fetching all order info from LeafLink");
+       // throw new Error("Debug TEST NICK");
 
         // **********  for debug ,  remove all order except the ones created by chris..********************
         // ************************************************************************************************
         if (DEBUG_FOR_CBAUER_ORDERS) {
-            console.log(" **** DEBUG **** : Filtering order list to ONLY CHRIS BAUERS ORDERS.")
+            logger.info(" **** DEBUG **** : Filtering order list to ONLY CHRIS BAUERS ORDERS.")
             lineitemcount = 0;
             for (var key in orders_map) {  // for each accepted order,
                 var order = orders_map[key];
@@ -138,7 +142,7 @@ async function runner() {
 
         if (DEBUG_PROCESS_ONLY_FIRST_ORDER)  // remove all but first item in order list. 
         {
-            console.log("*** DEBUG ***: filtering order list to only the first ORDER ")
+            logger.info("*** DEBUG ***: filtering order list to only the first ORDER ")
             lineitemcount = 0;  //reset line item count
             var count = 0;
             for (var key in orders_map) {  // for each accepted order,
@@ -156,15 +160,18 @@ async function runner() {
         //end debug. ******************************************************************************
         // **********************************************************************************************
 
-        console.log("Total Orders: " + Object.keys(orders_map).length)
-        console.log("Pre-Validation Total line items: " + lineitemcount);
+        logger.info("Total Orders: " + Object.keys(orders_map).length)
+        logger.info("Pre-Validation Total line items: " + lineitemcount);
 
         // Validate all line items are in the inventory list 
-        console.log("Validating all order line items against the Master SKU LIST");
+        logger.info("Validating all order line items against the Master SKU LIST");
         var lineitem_omitted_count = 0;
         for (var key in orders_map) {  // for each accepted order,
             var order = orders_map[key]
-            //console.log(JSON.stringify(order, null, 2))
+         
+             //debug print unedited list: 
+            var skulist1 = order.line_items.map(extractItemSkus)
+            logger.info("SKULIST: " + JSON.stringify(skulist1))
             for (var li = 0; li < order.line_items.length; li++)  // for each line item in the order. 
             {
                 var lineitem = order.line_items[li];
@@ -174,7 +181,7 @@ async function runner() {
                 //7/16/22 if line item is in the omit list, remove the item from order
                 if (omit_skus_map[sku] != undefined) // sku for this line item is in the omit map... 
                 {
-                    console.log("Removing(omiting) line item sku: " + sku + " from order: " + order.short_id)
+                    logger.info("Removing(omiting) line item sku: " + sku + " from order: " + order.short_id)
                     order.line_items.splice(li, 1);
                     li = 0;// start over on this order just in case. (want to make sure we get all omissions) 
                     lineitem_omitted_count++;
@@ -187,13 +194,18 @@ async function runner() {
                     throw new Error("From order: " + order.short_id + " could not find sku: " + sku + "  name: " + product_detail.name + " in Google Master sheet")
                 }
             }
+
+            // debug print revised sku list: 
+            var skulist2 = order.line_items.map(extractItemSkus)
+            logger.info("Revised SKULIST: " + JSON.stringify(skulist2))
+
         }
-        console.log("Success validating line items against SKUs")
+        logger.info("Success validating line items against SKUs")
 
         // adjust total line item count:
         lineitemcount -= lineitem_omitted_count;
 
-        console.log("You have " + Object.keys(orders_map).length + " orders to process that contains " + lineitemcount + " total line items")
+        logger.info("You have " + Object.keys(orders_map).length + " orders to process that contains " + lineitemcount + " total line items")
         const questions = [
             {
                 type: 'text',
@@ -217,8 +229,8 @@ async function runner() {
             starttag = response.start_tag;
         }
 
-        console.log("Confirm you have enough tags to fullfill this build now!!! ")
-        console.log("With start tag number: " + starttag + " your end tag will be " + (parseInt(starttag) + lineitemcount - 1));
+        logger.info("Confirm you have enough tags to fullfill this build now!!! ")
+        logger.info("With start tag number: " + starttag + " your end tag will be " + (parseInt(starttag) + lineitemcount - 1));
 
         var confirm_continue = 'y';
         if (DEBUG_PROMPT_START_TAG == true) {
@@ -230,11 +242,11 @@ async function runner() {
 
             constructMetrcPackageBlob(starttag);  // puts blobs into orders map.. throws error 
 
-            console.log("Starting to dispatch packages to Metrc");
+            logger.info("Starting to dispatch packages to Metrc");
             for (var key in orders_map) {  // for each accepted order,
                 var order = orders_map[key];
-                console.log("Tagging Order: " + order.short_id + " from: " + order.customer.display_name + " --  " + order.line_items.length + " line items");
-                console.log("Order Tag range: " + order.metrc_payload[0].Tag + " ---> " + order.metrc_payload[order.metrc_payload.length - 1].Tag)
+                logger.info("Tagging Order: " + order.short_id + " from: " + order.customer.display_name + " --  " + order.line_items.length + " line items");
+                logger.info("Order Tag range: " + order.metrc_payload[0].Tag + " ---> " + order.metrc_payload[order.metrc_payload.length - 1].Tag)
                 //console.log(JSON.stringify(order.metrc_payload, null, 2));
 
                 // 7/18/22 chunk the package into calls of 20 at a time. 
@@ -243,21 +255,21 @@ async function runner() {
                 for (let pkgidx = 0; pkgidx < order.metrc_payload.length; pkgidx += chunkSize) {
                     const chunk = order.metrc_payload.slice(pkgidx, pkgidx + chunkSize);
                     // make call. 
-                     console.log("Sending Bundle: " + bundlenumber);
+                    logger.info("Sending Bundle: " + bundlenumber);
                     await restutils.createMetrcPackages(chunk, function (status) {
-                        console.log("Result: " + status)
+                        logger.info("Result: " + status)
                     })
 
                     await sleep(500);  // X ms sec delay between chunk calls 
-                    
+
                     bundlenumber++;
                 }
 
-              
+
             }
         }
         else {
-            console.log("Cancelling packaging run");
+            logger.info("Cancelling packaging run");
             throw new Error("User Cancelled Build");
         }
 
@@ -265,7 +277,7 @@ async function runner() {
 
 
     } catch (err) {
-        console.log("ERROR: " + err.message + "  ===> Terminating Sequence now. ")
+        logger.error("ERROR: " + err.message + "  ===> Terminating Sequence now. ")
     }
 }
 

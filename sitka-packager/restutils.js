@@ -11,11 +11,13 @@ const METRC_PASSWORD = auth2.metrc_password;
 var token = "Basic " + btoa(METRC_USERNAME + ":" + METRC_PASSWORD);
 
 const DEBUG_GOOGLE_SHEET = false;  //use my debug sheet for sku check,. 
+const logger = require('./log');
 
 var utils = module.exports = {
 
     getProductMasterList: async function (callback) {
 
+       
         try {
             const auth = new google.auth.GoogleAuth({
                 keyFile: "./auth/auth_google.json", // "keys.json", //the key file

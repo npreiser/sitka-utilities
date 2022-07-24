@@ -1,7 +1,5 @@
 var moment = require('moment');
 
-
-
 function MetrcPackage(tag, qty, isdonation, parenttag)
 {
     var datestr = new moment().format("YYYY-MM-DD");
