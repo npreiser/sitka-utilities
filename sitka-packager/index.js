@@ -170,8 +170,8 @@ async function runner() {
             var order = orders_map[key]
          
              //debug print unedited list: 
-            var skulist1 = order.line_items.map(extractItemSkus)
-            logger.info("SKULIST: " + JSON.stringify(skulist1))
+            //var skulist1 = order.line_items.map(extractItemSkus)
+            //logger.info("SKULIST: " + JSON.stringify(skulist1))
             for (var li = 0; li < order.line_items.length; li++)  // for each line item in the order. 
             {
                 var lineitem = order.line_items[li];
@@ -196,8 +196,8 @@ async function runner() {
             }
 
             // debug print revised sku list: 
-            var skulist2 = order.line_items.map(extractItemSkus)
-            logger.info("Revised SKULIST: " + JSON.stringify(skulist2))
+            //var skulist2 = order.line_items.map(extractItemSkus)
+            //logger.info("Revised SKULIST: " + JSON.stringify(skulist2))
 
         }
         logger.info("Success validating line items against SKUs")
@@ -260,7 +260,7 @@ async function runner() {
                         logger.info("Result: " + status)
                     })
 
-                    await sleep(500);  // X ms sec delay between chunk calls 
+                    await sleep(700);  // X ms sec delay between chunk calls 
 
                     bundlenumber++;
                 }
