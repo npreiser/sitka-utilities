@@ -183,7 +183,7 @@ async function runner() {
                 {
                     logger.info("Removing(omiting) line item sku: " + sku + " from order: " + order.short_id)
                     order.line_items.splice(li, 1);
-                    li = 0;// start over on this order just in case. (want to make sure we get all omissions) 
+                    li = -1;// start over on this order just in case. (want to make sure we get all omissions) note post inc
                     lineitem_omitted_count++;
                     continue;
                 }
@@ -288,11 +288,11 @@ function testomission()
     for(var i = 0 ; i < maindata.length; i++)  
     {
         // omit 3,6,9
-        if (maindata[i] == 1 || maindata[i] == 6 || maindata[i] == 9)
+        if (maindata[i] == 1 || maindata[i] == 2 || maindata[i] == 3)
         {
             
             maindata.splice(i, 1);
-            i = 0;
+            i = -1;
             continue;
         }
     }
