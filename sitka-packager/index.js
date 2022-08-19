@@ -1,5 +1,6 @@
 var moment = require('moment');
 const fs = require('fs');
+const fse = require('fs-extra')
 const path = require('path');
 var restutils = require('./restutils');
 const prompts = require('prompts');
@@ -17,7 +18,7 @@ var master_product_map = undefined;
 var omit_skus_map = undefined;
 
 // ONLY PROCESS FIRST ORDER IN LIST
-const DEBUG_PROCESS_ONLY_FIRST_ORDER = true; //set true to only process first ordrer in list 
+const DEBUG_PROCESS_ONLY_FIRST_ORDER = false; //set true to only process first ordrer in list 
 
 // CBAUER order only. -- set true to filter order list to only his order. 
 const DEBUG_FOR_CBAUER_ORDERS = false;
@@ -30,6 +31,7 @@ var logger = require('./log.js');
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+
 
 // This function creates all the blobs per order , starting at start tag.
 // the blobs are placed into the order_map, on a per order  
@@ -76,14 +78,20 @@ function constructMetrcPackageBlob(starttag) {
 
 }
 
-function extractItemSkus(item)
-{
+function extractItemSkus(item) {
     return item.frozen_data.product.sku;
 }
 async function runner() {
 
     try {
+        // create/empty the manifests folder
+        if (!fs.existsSync("./manifests"))
+            fs.mkdirSync("./manifests");
 
+        logger.info("clearing out the manifests dir now")
+        fse.emptyDirSync("./manifests");  //empty the dir. 
+
+        
         logger.info("Fetching Product Master list from Google Sheets");
         await restutils.getProductMasterList(function (status, productmap, omitmap) {
             if (status == 'success') {
@@ -116,7 +124,7 @@ async function runner() {
         }
 
         logger.info("Done fetching all order info from LeafLink");
-       // throw new Error("Debug TEST NICK");
+        // throw new Error("Debug TEST NICK");
 
         // **********  for debug ,  remove all order except the ones created by chris..********************
         // ************************************************************************************************
@@ -168,8 +176,8 @@ async function runner() {
         var lineitem_omitted_count = 0;
         for (var key in orders_map) {  // for each accepted order,
             var order = orders_map[key]
-         
-             //debug print unedited list: 
+
+            //debug print unedited list: 
             var skulist1 = order.line_items.map(extractItemSkus)
             logger.info("SKULIST(precheck): " + JSON.stringify(skulist1))
             for (var li = 0; li < order.line_items.length; li++)  // for each line item in the order. 
@@ -257,15 +265,18 @@ async function runner() {
                     // make call. 
                     logger.info("Sending Bundle: " + bundlenumber);
                     await restutils.createMetrcPackages(chunk, function (status) {
-                        logger.info("Result: " + status)
+                        logger.info("Result: " + status);
                     })
-
                     await sleep(700);  // X ms sec delay between chunk calls 
-
                     bundlenumber++;
                 }
 
-
+                logger.info("Generating manifest file(csv) for this order")
+                var fname = order.short_id + "_" + order.customer.display_name;
+                for (var pkgnum = 0; pkgnum < order.metrc_payload.length; pkgnum++) {
+                    var tag = order.metrc_payload[pkgnum].Tag;
+                    fs.writeFileSync("./manifests/" + fname, tag + "\r\n");
+                }
             }
         }
         else {
@@ -281,16 +292,13 @@ async function runner() {
     }
 }
 
-function testomission()
-{
-    var maindata = [1,2,3,4,5,6,7,8,9,10];
+function testomission() {
+    var maindata = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-    for(var i = 0 ; i < maindata.length; i++)  
-    {
+    for (var i = 0; i < maindata.length; i++) {
         // omit 3,6,9
-        if (maindata[i] == 1 || maindata[i] == 2 || maindata[i] == 3)
-        {
-            
+        if (maindata[i] == 1 || maindata[i] == 2 || maindata[i] == 3) {
+
             maindata.splice(i, 1);
             i = -1;
             continue;
@@ -298,7 +306,7 @@ function testomission()
     }
 
     console.log(maindata);
-  
+
 }
 
 //testomission();
