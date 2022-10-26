@@ -1,0 +1,25 @@
+{
+  "name": "leaflink-reporter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/npreiser/sitka-utilities.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/npreiser/sitka-utilities/issues"
+  },
+  "homepage": "https://github.com/npreiser/sitka-utilities#readme",
+  "dependencies": {
+    "csv-parse": "^5.3.0",
+    "csv-parser": "^3.0.0",
+    "fast-csv": "^4.3.6",
+    "xlsx": "^0.18.5"
+  }
+}
