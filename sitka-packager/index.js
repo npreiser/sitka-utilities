@@ -91,7 +91,7 @@ async function runner() {
         logger.info("clearing out the manifests dir now")
         fse.emptyDirSync("./manifests");  //empty the dir. 
 
-        
+
         logger.info("Fetching Product Master list from Google Sheets");
         await restutils.getProductMasterList(function (status, productmap, omitmap) {
             if (status == 'success') {
@@ -272,10 +272,10 @@ async function runner() {
                 }
 
                 logger.info("Generating manifest file(csv) for this order")
-                var fname = order.short_id + "_" + order.customer.display_name;
+                var fname = order.short_id + "_" + order.customer.display_name+".csv";
                 for (var pkgnum = 0; pkgnum < order.metrc_payload.length; pkgnum++) {
                     var tag = order.metrc_payload[pkgnum].Tag;
-                    fs.writeFileSync("./manifests/" + fname, tag + "\r\n");
+                    fs.appendFileSync("./manifests/" + fname, tag + "\r\n");
                 }
             }
         }
