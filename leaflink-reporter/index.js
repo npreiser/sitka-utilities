@@ -128,13 +128,31 @@ async function runner() {
 
 
         //v2 metrics:====================
-        // By rep by.. Product line  Metric ================
-        var byrep2 = byrep_pline_map.get(validrepname);  // get productline obj
-        if (byrep2 == undefined) {
-            byrep_pline_map.set(validrepname, new ByRepPline(validrepname, obj.customer));
-            byrep2 = byrep_pline_map.get(validrepname);
+        // root map by rep,  sub may by customer , attribtues are product Metric ================
+
+         var byrepbycustomer = undefined;
+        var rep_map = byrep_pline_map.get(validrepname); // get the reps product map
+        if (rep_map == undefined) {
+            byrep_pline_map.set(validrepname, new Map());  // create map just for rep. 
+            rep_map = byrep_pline_map.get(validrepname);
+            rep_map.set(obj.customer, new ByRepPline(validrepname, obj.customer));
+            byrepbycustomer = rep_map.get(obj.customer);
         }
-        byrep2.appendUnitTotals(obj);
+        else {
+            byrepbycustomer = rep_map.get(obj.customer);
+            if (byrepbycustomer == undefined) {
+                rep_map.set(obj.customer, new ByRepPline(validrepname, obj.customer));
+                byrepbycustomer = rep_map.get(obj.customer);
+            }
+        }
+       // var byrep2 = byrep_pline_map.get(validrepname);  // get productline obj
+       // if (byrep2 == undefined) {
+        //    byrep_pline_map.set(validrepname, new ByRepPline(validrepname, obj.customer));
+        //    byrep2 = byrep_pline_map.get(validrepname);
+       // }
+        byrepbycustomer.appendUnitTotals(obj);
+
+        // END v2 metrics 
 
 
 
@@ -196,11 +214,28 @@ async function runner() {
 
 
     // V2 metrics: 
-     // ====================== By rep/pline units  output
-     const values_brep_pline = Array.from(byrep_pline_map.values())
-     var worksheet_by_rep_v2 = XLSX.utils.json_to_sheet(values_brep_pline);
+     // ====================== By rep by customer, attr prod units  units  output
+
+     var rep_cust_array = [];
+     const sorted_repcustmap = new Map([...byrep_pline_map].sort());
+ 
+     for (const [key, value] of sorted_repcustmap.entries()) {  // for each rep , get there prod map.. and calc totals . by productline
+         // key is rep name,  value is rep pline map.
+         var rep_map = sorted_repcustmap.get(key); // get the reps cust map
+        // for (const [key, value] of rep_map.entries()) {
+         //    var cust = rep_map.get(key);  //for each prod, calc totals 
+         //    cust.calcFinalTotals();
+        // }
+ 
+         // convert this repmap to  an array and append that to our master array 
+         const values = Array.from(rep_map.values())
+         rep_cust_array = rep_cust_array.concat(values)
+     }
+
+     //const values_brep_pline = Array.from(byrep_pline_map.values())
+     var worksheet_by_rep_v2 = XLSX.utils.json_to_sheet(rep_cust_array);
      worksheet_by_rep_v2["!cols"] = [{ wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
-     XLSX.utils.book_append_sheet(workbook, worksheet_by_rep_v2, "byrep_pline_units", true);
+     XLSX.utils.book_append_sheet(workbook, worksheet_by_rep_v2, "byrep_bycust_unit_summary", true);
 
 
     // output file 
