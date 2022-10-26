@@ -38,7 +38,7 @@ function transformRow(row) {
     newrow['ship_city'] = row['ship_city'];
     newrow['rep'] = row['rep'];
     newrow['product_line'] = row['product_line'];
-    newrow['Qty (Units)'] = parseFloat(row['Qty (Units)']);
+    newrow['Qty (Units)'] = parseFloat(row['Qty (Units)'].replace(',',''));//10/26 trim off  ","
     newrow['product'] = row['product'];
     newrow['manual'] = row['manual'];
     newrow['line_item_total'] = parseFloat(row['line_item_total'].replace('$', '').replace(',', ''));  // trim $ and "," and convert to dec 
