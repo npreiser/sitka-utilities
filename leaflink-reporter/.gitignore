@@ -3,4 +3,4 @@ auth
 node_modules
 *.zip
 .csv
-.xlsx
+*.xlsx
