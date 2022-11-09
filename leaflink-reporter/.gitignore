@@ -2,5 +2,5 @@
 auth
 node_modules
 *.zip
-.csv
+*.csv
 *.xlsx
