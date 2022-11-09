@@ -1,4 +1,4 @@
-class ProductLine2 {
+class ProductLineSummary {
     constructor(name) {
         this.productname = name;
         this.total_units_sold = 0;
@@ -62,4 +62,4 @@ class ProductLine2 {
 
 
 }
-module.exports = ProductLine2;
+module.exports = ProductLineSummary;
