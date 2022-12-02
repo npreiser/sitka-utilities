@@ -45,6 +45,8 @@ var utils = module.exports = {
             }
 
             var OMIT_SKU_SHEET_RANGE = "Omit SKUs!A1:B50";
+
+          
             // const spreadsheetId = "1fKVhIlVDRXbpueHxG9rL2AowXtIrzidUAyylLIAMjqs"  // sitka SKU MASTER LIST 
             //const spreadsheetId = "1KvEGCZ22owF9goef25iQuRJvc2FZzaKY_EGAKUoe-2o";
 
@@ -89,13 +91,32 @@ var utils = module.exports = {
             }
 
 
+            //11/30/22 call for Transporters List: *************************************************
+            var TRASPORTERS_SHEET_RANGE = "Transporters!A1:K40";
+            
+            const readTransportersData = await googleSheetsInstance.spreadsheets.values.get({
+                auth, //auth object
+                spreadsheetId, // spreadsheet id
+                range: TRASPORTERS_SHEET_RANGE, 
+            })
+            // convert return data  into omit map by sku,  
+            var transporters_map = new Object();
+            for (var i = 1; i < readTransportersData.data.values.length; i++) {
+                // first row is header, skip. 
+                var trans = readTransportersData.data.values[i];
+                transporters_map[trans[1]] = { "TFL": trans[0] ,"Name": trans[1],"EmployeeID": trans[2],"DriversLicenseNumber": trans[3],
+                "PhoneNumber": trans[4],"Vehicle_Make": trans[5],"Vehicle_Model": trans[6],"License_Plate": trans[7] }
+            }
+
+
             // send back the data 
-            callback("success", products_map, omit_map);
+            callback("success", products_map, omit_map, transporters_map);
         } catch (err1) {
             throw new Error("Error Fetching Google Master Product Sheet: " + err1.message);
             // callback("error", err1);
         }
     },
+  
 
     getLeaflinkAcceptedOrders: async function (callback) {
         var config = {
@@ -131,7 +152,7 @@ var utils = module.exports = {
     getLeaflinkOrderInfo: async function (ordernumber, callback) {
         var config = {
             method: 'get',
-            url: LEAFLINK_HOST + '/orders-received/?number=' + ordernumber + '&include_children=line_items',
+            url: LEAFLINK_HOST + '/orders-received/?number=' + ordernumber + '&include_children=line_items,customer',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': LEAFLINK_API_KEY
@@ -191,6 +212,40 @@ var utils = module.exports = {
                     throw new Error("Creating Metrc Package: " + JSON.stringify(error.response.data, null, 2));
                 else
                     throw new Error("Creating Metrc Package: " + error);
+
+            });
+    }, 
+
+    // just a test for now.. returns array 
+    createMetrcTransfer: async function (packagedata, callback) {
+        var config = {
+            method: 'post',
+            url: METRC_HOST + '/transfers/v1/templates?licenseNumber=' + METRC_LICENSE_NUMBER,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token
+            },
+            data: [packagedata]
+        };
+
+        await axios(config)
+            .then(function (response) {
+                if (response.status == 200) {
+                    if (response != null && response.statusText == "OK") {
+                        callback("success");
+                    }
+                    else
+                        throw new Error("Creating Metrc Transfer: " + "Unkown Error");
+                }
+                else {
+                    throw new Error("Creating Metrc Transfer: " + "Bad status code: " + response.status);
+                }
+            })
+            .catch(function (error) {
+                if (error.response != undefined && error.response.data != undefined)
+                    throw new Error("Creating Metrc Transfer: " + JSON.stringify(error.response.data, null, 2));
+                else
+                    throw new Error("Creating Metrc Transfer: " + error);
 
             });
     }

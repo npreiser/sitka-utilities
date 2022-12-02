@@ -6,9 +6,11 @@ var restutils = require('./restutils');
 const prompts = require('prompts');
 const REUP_BASE_TAG = "1A401030003F86A"
 let metrcpkg = require('./metrcpackage');
+let metrctransfer = require('./metrctransfer');
 const { Console } = require('console');
 
 let MetrcPkg = metrcpkg.MetrcPackage;
+let MetrcTransferTemplate = metrctransfer.MetrcTransferTemplate;
 // NOTE,  remainder postfix eg. = 000017647     9 chars
 // you have atleast one param: 
 var accepted_orders = [];
@@ -16,6 +18,7 @@ var orders_map = new Object();
 var lineitemcount = 0;
 var master_product_map = undefined;
 var omit_skus_map = undefined;
+var transporters_map = undefined;
 
 // ONLY PROCESS FIRST ORDER IN LIST
 const DEBUG_PROCESS_ONLY_FIRST_ORDER = false; //set true to only process first ordrer in list 
@@ -32,7 +35,9 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-
+// 11/22/22
+var temp_tag_price_map = undefined; // tag: price map for transfer mapping 
+temp_tag_price_map = new Object();
 // This function creates all the blobs per order , starting at start tag.
 // the blobs are placed into the order_map, on a per order  
 function constructMetrcPackageBlob(starttag) {
@@ -61,6 +66,11 @@ function constructMetrcPackageBlob(starttag) {
                 while (strtag.length < 9)
                     strtag = "0" + strtag;
 
+                //11/22/22 reocrder tag / price: 
+                var price = (product_detail.sale_price != "0.00") ? product_detail.sale_price : product_detail.price
+                temp_tag_price_map[REUP_BASE_TAG + strtag] = price;
+
+
                 let pkg = new MetrcPkg(REUP_BASE_TAG + strtag, qty, lineitem.is_sample, reup_prod_info.TAG);
 
                 //var m1 = JSON.stringify(pkg);
@@ -78,6 +88,62 @@ function constructMetrcPackageBlob(starttag) {
 
 }
 
+
+function validateLeafLinkOrders() {
+    // Validate all line items are in the inventory list 
+    logger.info("Validating all order line items against the Master SKU LIST, and Transporter(SalesRep Names) are valid");
+    var lineitem_omitted_count = 0;
+    for (var key in orders_map) {  // for each accepted order,
+        var order = orders_map[key]
+
+        // sales rep. 11/30/22
+        var sales_repname = order.sales_reps[0].user;
+        if (transporters_map[sales_repname] == undefined) {
+            //error out,  invalide sales rep.
+            throw new Error("From order: " + order.short_id + " could not find transporter/sales rep: " + sales_repname + " in Google Master sheet (Transporters sheet)")
+        }
+
+        //debug print unedited list: 
+        var skulist1 = order.line_items.map(extractItemSkus)
+        logger.info("SKULIST(precheck): " + JSON.stringify(skulist1))
+        for (var li = 0; li < order.line_items.length; li++)  // for each line item in the order. 
+        {
+            var lineitem = order.line_items[li];
+            var product_detail = lineitem.frozen_data.product;
+            var sku = product_detail.sku;
+
+            //7/16/22 if line item is in the omit list, remove the item from order
+            if (omit_skus_map[sku] != undefined) // sku for this line item is in the omit map... 
+            {
+                logger.info("Removing(omiting) line item sku: " + sku + " from order: " + order.short_id)
+                order.line_items.splice(li, 1);
+                li = -1;// start over on this order just in case. (want to make sure we get all omissions) note post inc
+                lineitem_omitted_count++;
+                continue;
+            }
+
+
+            // check sku is in master prod map
+            if (master_product_map[sku] == undefined) {
+                throw new Error("From order: " + order.short_id + " could not find sku: " + sku + "  name: " + product_detail.name + " in Google Master sheet")
+            }
+        }
+
+        // debug print revised sku list: 
+        var skulist2 = order.line_items.map(extractItemSkus)
+        logger.info("Revised SKULIST: " + JSON.stringify(skulist2))
+
+    }
+    logger.info("Success validating line items against SKUs")
+
+    // adjust total line item count:
+    lineitemcount -= lineitem_omitted_count;
+
+    logger.info("You have " + Object.keys(orders_map).length + " orders to process that contains " + lineitemcount + " total line items")
+
+}
+
+
 function extractItemSkus(item) {
     return item.frozen_data.product.sku;
 }
@@ -93,11 +159,12 @@ async function runner() {
 
 
         logger.info("Fetching Product Master list from Google Sheets");
-        await restutils.getProductMasterList(function (status, productmap, omitmap) {
+        await restutils.getProductMasterList(function (status, productmap, omitmap, transportersmap) {
             if (status == 'success') {
                 logger.info("Got Product master list and omit item list from google. Stored");
                 master_product_map = productmap;
                 omit_skus_map = omitmap;
+                transporters_map = transportersmap;
             }// shold never get past here. 
         })
 
@@ -133,7 +200,7 @@ async function runner() {
             lineitemcount = 0;
             for (var key in orders_map) {  // for each accepted order,
                 var order = orders_map[key];
-                var customername = order.customer.display_name;
+                var customername = order.customer.name;
                 if (!customername.includes("Noble Lord Bauer")) {
                     delete orders_map[key];
                 }
@@ -171,49 +238,8 @@ async function runner() {
         logger.info("Total Orders: " + Object.keys(orders_map).length)
         logger.info("Pre-Validation Total line items: " + lineitemcount);
 
-        // Validate all line items are in the inventory list 
-        logger.info("Validating all order line items against the Master SKU LIST");
-        var lineitem_omitted_count = 0;
-        for (var key in orders_map) {  // for each accepted order,
-            var order = orders_map[key]
+        validateLeafLinkOrders(); 
 
-            //debug print unedited list: 
-            var skulist1 = order.line_items.map(extractItemSkus)
-            logger.info("SKULIST(precheck): " + JSON.stringify(skulist1))
-            for (var li = 0; li < order.line_items.length; li++)  // for each line item in the order. 
-            {
-                var lineitem = order.line_items[li];
-                var product_detail = lineitem.frozen_data.product;
-                var sku = product_detail.sku;
-
-                //7/16/22 if line item is in the omit list, remove the item from order
-                if (omit_skus_map[sku] != undefined) // sku for this line item is in the omit map... 
-                {
-                    logger.info("Removing(omiting) line item sku: " + sku + " from order: " + order.short_id)
-                    order.line_items.splice(li, 1);
-                    li = -1;// start over on this order just in case. (want to make sure we get all omissions) note post inc
-                    lineitem_omitted_count++;
-                    continue;
-                }
-
-
-                // check sku is in master prod map
-                if (master_product_map[sku] == undefined) {
-                    throw new Error("From order: " + order.short_id + " could not find sku: " + sku + "  name: " + product_detail.name + " in Google Master sheet")
-                }
-            }
-
-            // debug print revised sku list: 
-            var skulist2 = order.line_items.map(extractItemSkus)
-            logger.info("Revised SKULIST: " + JSON.stringify(skulist2))
-
-        }
-        logger.info("Success validating line items against SKUs")
-
-        // adjust total line item count:
-        lineitemcount -= lineitem_omitted_count;
-
-        logger.info("You have " + Object.keys(orders_map).length + " orders to process that contains " + lineitemcount + " total line items")
         const questions = [
             {
                 type: 'text',
@@ -253,7 +279,7 @@ async function runner() {
             logger.info("Starting to dispatch packages to Metrc");
             for (var key in orders_map) {  // for each accepted order,
                 var order = orders_map[key];
-                logger.info("Tagging Order: " + order.short_id + " from: " + order.customer.display_name + " --  " + order.line_items.length + " line items");
+                logger.info("Tagging Order: " + order.short_id + " from: " + order.customer.name + " --  " + order.line_items.length + " line items");
                 logger.info("Order Tag range: " + order.metrc_payload[0].Tag + " ---> " + order.metrc_payload[order.metrc_payload.length - 1].Tag)
                 //console.log(JSON.stringify(order.metrc_payload, null, 2));
 
@@ -271,12 +297,32 @@ async function runner() {
                     bundlenumber++;
                 }
 
+                //when many orders with many packages,,, this files does not get written in time,,, 
+                //  issue is file name,,, contains slashes.. etc.. (TOFIX THIS) 
+                //  
                 logger.info("Generating manifest file(csv) for this order")
-                var fname = order.short_id + "_" + order.customer.display_name+".csv";
+
+                //11/23/22 fixup the display name
+                var fixed_dispname = order.customer.name.replaceAll("/", "_").replaceAll(" ", "").replaceAll("-", "_").trim();
+                var fname = order.short_id + "_" + fixed_dispname + ".csv";
                 for (var pkgnum = 0; pkgnum < order.metrc_payload.length; pkgnum++) {
                     var tag = order.metrc_payload[pkgnum].Tag;
                     fs.appendFileSync("./manifests/" + fname, tag + "\r\n");
                 }
+
+                // UNder test (transporter template. )===================================================
+                logger.info("Generating transfer template for order")
+                var transporter = transporters_map[order.sales_reps[0].user];
+                let tt = new MetrcTransferTemplate(order, temp_tag_price_map, transporter);
+                logger.info("Sending transfer template for order")
+                await restutils.createMetrcTransfer(tt, function (status) {
+                    logger.info("Result: " + status);
+                })
+                
+                // end transporter 
+
+
+
             }
         }
         else {
@@ -292,25 +338,61 @@ async function runner() {
     }
 }
 
-function testomission() {
-    var maindata = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-    for (var i = 0; i < maindata.length; i++) {
-        // omit 3,6,9
-        if (maindata[i] == 1 || maindata[i] == 2 || maindata[i] == 3) {
+async function test_harness1() {
 
-            maindata.splice(i, 1);
-            i = -1;
-            continue;
+    //var test1 = "  myfile / sldkjfs / sdflskfj - ";
+    //var fix1 = test1.replaceAll("/", "_").replaceAll(" ", "").replaceAll("-", "_").trim();
+
+
+    await restutils.getProductMasterList(function (status, productmap, omitmap,transportersmap) {
+        if (status == 'success') {
+            logger.info("Got Product master list and omit item list from google. Stored");
+            master_product_map = productmap;
+            omit_skus_map = omitmap;
+            transporters_map = transportersmap;
+        }// shold never get past here. 
+    })
+
+    await restutils.getLeaflinkAcceptedOrders(function (status, data) {
+        // returned data is an array of orders
+        if (status == 'success') {
+            logger.info("Got LeafLink Order List");
+            accepted_orders = data;
         }
+    })
+
+
+
+    logger.info("Fetching Order info for each accepted order now, order count: " + accepted_orders.length)
+    for (var i = 0; i < accepted_orders.length; i++) {
+        logger.info("getting details for order number: " + accepted_orders[i].number);
+        await restutils.getLeaflinkOrderInfo(accepted_orders[i].number, function (status, data) {
+            if (status == 'success')   // note, data is an array, which we want index 0 of. 
+            {
+                orders_map[accepted_orders[i].number] = data[0];  // store it.. 
+                lineitemcount += data[0].line_items.length;
+            }
+        })
     }
 
-    console.log(maindata);
+    validateLeafLinkOrders(); 
+    constructMetrcPackageBlob("48429");
+    //customer:license_number
+    for (var key in orders_map) {  // for each accepted order,
+        var order = orders_map[key];
+        var transporter = transporters_map[order.sales_reps[0].user];
+        let tt = new MetrcTransferTemplate(order, temp_tag_price_map, transporter);
+
+        await restutils.createMetrcTransfer(tt, function (status) {
+            logger.info("Result: " + status);
+        })
+    }
+
+
 
 }
 
-//testomission();
-
-
+//test_harness1();
 
 runner();
