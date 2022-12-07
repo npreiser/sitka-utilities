@@ -67,8 +67,15 @@ function constructMetrcPackageBlob(starttag) {
                     strtag = "0" + strtag;
 
                 //11/22/22 reocrder tag / price: 
-                var price = (product_detail.sale_price != "0.00") ? product_detail.sale_price : product_detail.price
-                temp_tag_price_map[REUP_BASE_TAG + strtag] = price;
+               // create a temp tag:price map,  this is used so that we can map tags to total price when 
+               // creating the transfer templates.  The price is not part of the normal metrc payload so we 
+               //have to have it seperated, 
+                var price =  lineitem.sale_price.amount * lineitem.bulk_units;
+                if(lineitem.is_sample)
+                    price = ".01";  // have to have value > 00. for metrc. 
+
+                temp_tag_price_map[REUP_BASE_TAG + strtag] = price.toString();
+                // end temp tag price map. 
 
 
                 let pkg = new MetrcPkg(REUP_BASE_TAG + strtag, qty, lineitem.is_sample, reup_prod_info.TAG);
