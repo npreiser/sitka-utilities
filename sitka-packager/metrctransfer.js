@@ -35,7 +35,7 @@ function MetrcTransferTemplate(order, price_map, transporter) {
     this.Destinations = [
       {
         "RecipientLicenseNumber": order.customer.license_number, // "060-1016689907F",  // buyres lic number (from order. )
-        "TransferTypeName": "Wholesale",
+        "TransferTypeName": "Wholesale Transfer",
         "PlannedRoute": "Best GPS Route",
         "EstimatedDepartureDateTime": departure, //"2018-03-06T08:00:00.000",   // ship date of order  8 am ,,,
         "EstimatedArrivalDateTime": arrival, //"2018-03-06T16:00:00.000",   // ship date +   4pm same date.. 
