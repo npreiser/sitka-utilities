@@ -1,0 +1,27 @@
+{
+  "name": "inventory-report",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/npreiser/sitka-utilities.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/npreiser/sitka-utilities/issues"
+  },
+  "homepage": "https://github.com/npreiser/sitka-utilities#readme",
+  "dependencies": {
+    "axios": "^1.2.0",
+    "json2csv": "^5.0.7",
+    "moment": "^2.29.4",
+    "winston": "^3.8.2",
+    "winston-daily-rotate-file": "^4.7.1",
+    "xlsx": "^0.18.5"
+  }
+}
