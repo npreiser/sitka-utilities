@@ -21,7 +21,7 @@ class ProductLineSummary {
 
         this.total_gross += obj.line_item_total;
 
-        if (obj.is_sample == 'True') {
+        if (obj.is_sample.toUpperCase() == 'TRUE') {
             this.total_sample_units += obj['Qty (Units)'];
         }
         else {
@@ -48,18 +48,27 @@ class ProductLineSummary {
     }
 
     calcFinalTotals() {
-        this.total_gross = this.total_gross.toFixed(2);
+        // convert everything to a float, 
+        this.total_units = parseFloat(this.total_units);
+        this.total_units_sold = parseFloat(this.total_units_sold);
+
+        this.total_gross = parseFloat(this.total_gross.toFixed(2));
+        
+        var zero = 0;
         if (this.total_units > 0) {
-            this.avg_unit_price_total = (this.total_gross / this.total_units).toFixed(2);  //avg price including samples. 
-            this.avg_unit_price_sold = (this.total_gross / this.total_units_sold).toFixed(2);   // avg price , sold units 
+            this.avg_unit_price_total = parseFloat((this.total_gross / this.total_units).toFixed(2));  //avg price including samples. 
         }
         else {
-            var zero = 0;
-            this.avg_unit_price_total = zero.toFixed(2);
-            this.avg_unit_price_sold = zero.toFixed(2);
+            this.avg_unit_price_total = parseFloat(zero.toFixed(2));
+        }
+
+        if (this.total_units_sold > 0) {
+            this.avg_unit_price_sold = parseFloat((this.total_gross / this.total_units_sold).toFixed(2));   // avg price , sold units 
+        }
+        else {
+            this.avg_unit_price_sold = parseFloat(zero.toFixed(2));
         }
     }
-
 
 }
 module.exports = ProductLineSummary;

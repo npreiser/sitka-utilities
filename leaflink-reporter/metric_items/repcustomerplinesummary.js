@@ -20,14 +20,19 @@ class RepCustomerProductSummary {
         this.accessories = 0;
         this.clearance = 0;
 
+        // added 1/27/23
+        this.og_indoor_a_buds = 0;
+        this.og_pre_rolls = 0;
+        this.og_solventless_conentrates = 0;
+
         this.unknown = 0;
-  
+
     }
 
     appendUnitTotals(obj) {
 
-        
-       // this.total_gross += obj.line_item_total;
+
+        // this.total_gross += obj.line_item_total;
         switch (obj.product_line) {
 
             case "Disco Dabs - Shatter | 1 gram":
@@ -43,7 +48,6 @@ class RepCustomerProductSummary {
             case "Disco Dabs - Pure Live Resin Cartridges":
                 this.pure_live_resin_cartridge += obj['Qty (Units)'];
                 break;
-
 
             case "Disco Dabs - Live Resin | 1 gram":
                 this.live_resin_1g += obj['Qty (Units)'];
@@ -80,12 +84,30 @@ class RepCustomerProductSummary {
             case "Disco Dabs - Clearance":
                 this.clearance += obj['Qty (Units)'];
                 break;
+
+            case "Otis Gardens - Premium Indoor A Buds":
+                this.og_indoor_a_buds += obj['Qty (Units)'];
+                break;
+
+            case "Otis Gardens - Pre-Rolls":
+                this.og_pre_rolls += obj['Qty (Units)'];;
+                break;
+
+            case "Otis Gardens - Solventless Concentrates":
+                this.og_solventless_conentrates += obj['Qty (Units)'];
+                break;
+
+            case "Sitka Northwest - Wholesale Flower":
+                this.wholesale_flower += obj['Qty (Units)'];
+                break;
+
             default:
+               // console.log("unknown product line found: " + obj.product_line);
                 this.unknown += obj['Qty (Units)'];
                 break;
         }
 
-        
+
     }
 
 
