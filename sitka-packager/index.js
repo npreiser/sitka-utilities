@@ -44,6 +44,12 @@ function constructMetrcPackageBlob(starttag) {
 
     logger.info("Based on start tag, building payloads for each line item in each order now.")
     var currenttag = starttag;
+
+    // label data files for PRINTER 3/25/23
+    var now = moment().format("YYYYMMDD_HHmmss");
+    var fname_labels = now + "_" + starttag + ".csv"
+    fs.appendFileSync("./tag_printer_data/" + fname_labels, "tag, product name, qty" + "\r\n");  //create file with header
+
     for (var key in orders_map) {  // for each accepted order,
         try {
 
@@ -64,11 +70,10 @@ function constructMetrcPackageBlob(starttag) {
 
                 //3/25/23 flower added: check for flower, convert pound to grams.. and units..etc 
                 var isflower = false;
-                if(product_detail.name.toLowerCase().includes('a buds'))
-                {
+                if (product_detail.name.toLowerCase().includes('a buds')) {
                     isflower = true;
                     //456 grams per lb , the qty will be in lbs. 
-                    var grams = qty * 456; 
+                    var grams = qty * 456;
                     qty = grams;  // set qty to grams 
                 }
                 // end added flower support
@@ -80,11 +85,11 @@ function constructMetrcPackageBlob(starttag) {
                     strtag = "0" + strtag;
 
                 //11/22/22 reocrder tag / price: 
-               // create a temp tag:price map,  this is used so that we can map tags to total price when 
-               // creating the transfer templates.  The price is not part of the normal metrc payload so we 
-               //have to have it seperated, 
-                var price =  lineitem.sale_price.amount * lineitem.bulk_units;
-                if(lineitem.is_sample)
+                // create a temp tag:price map,  this is used so that we can map tags to total price when 
+                // creating the transfer templates.  The price is not part of the normal metrc payload so we 
+                //have to have it seperated, 
+                var price = lineitem.sale_price.amount * lineitem.bulk_units;
+                if (lineitem.is_sample)
                     price = ".01";  // have to have value > 00. for metrc. 
 
                 temp_tag_price_map[REUP_BASE_TAG + strtag] = price.toString();
@@ -95,6 +100,11 @@ function constructMetrcPackageBlob(starttag) {
 
                 //var m1 = JSON.stringify(pkg);
                 order_packages.push(pkg);
+
+                // 3/23/25 append label file with data 
+                fs.appendFileSync("./tag_printer_data/" + fname_labels, REUP_BASE_TAG + strtag + "," + product_detail.name + "," +qty + "\r\n"); 
+
+
                 currenttag++;  // inc tag number 
 
             }
@@ -173,6 +183,9 @@ async function runner() {
         // create/empty the manifests folder
         if (!fs.existsSync("./manifests"))
             fs.mkdirSync("./manifests");
+
+        if (!fs.existsSync("./tag_printer_data"))
+            fs.mkdirSync("./tag_printer_data");
 
         logger.info("clearing out the manifests dir now")
         fse.emptyDirSync("./manifests");  //empty the dir. 
@@ -258,7 +271,7 @@ async function runner() {
         logger.info("Total Orders: " + Object.keys(orders_map).length)
         logger.info("Pre-Validation Total line items: " + lineitemcount);
 
-    //    validateLeafLinkOrders(); 
+        //    validateLeafLinkOrders(); 
 
         const questions = [
             {
@@ -338,11 +351,8 @@ async function runner() {
                 await restutils.createMetrcTransfer(tt, function (status) {
                     logger.info("Result: " + status);
                 })
-                
+
                 // end transporter 
-
-
-
             }
         }
         else {
@@ -365,7 +375,7 @@ async function test_harness1() {
     //var fix1 = test1.replaceAll("/", "_").replaceAll(" ", "").replaceAll("-", "_").trim();
 
 
-    await restutils.getProductMasterList(function (status, productmap, omitmap,transportersmap) {
+    await restutils.getProductMasterList(function (status, productmap, omitmap, transportersmap) {
         if (status == 'success') {
             logger.info("Got Product master list and omit item list from google. Stored");
             master_product_map = productmap;
@@ -396,7 +406,7 @@ async function test_harness1() {
         })
     }
 
-    validateLeafLinkOrders(); 
+    validateLeafLinkOrders();
     constructMetrcPackageBlob("48429");
     //customer:license_number
     for (var key in orders_map) {  // for each accepted order,
