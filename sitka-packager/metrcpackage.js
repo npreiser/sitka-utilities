@@ -1,25 +1,29 @@
 var moment = require('moment');
 
-function MetrcPackage(tag, qty, isdonation, parenttag)
-{
+function MetrcPackage(tag, qty, isflower, isdonation, parenttag) {
     var datestr = new moment().format("YYYY-MM-DD");
-   
+
     this.Tag = tag;
     this.Location = "SNW Outgoing";
     this.Item = "";
     this.Quantity = qty;
-    this.UnitOfMeasure = "Each";
+    this.UnitOfMeasure = "Each"; 
+    if (isflower) //3/25/23
+        this.UnitOfMeasure = "Gram";  //support for flower 
+
     this.PatientLicenseNumber = ""; //blank
     this.Note = ""; //blank;
     this.IsProductionBatch = false;
     this.ProductionBatchNumber = null;  //ignroe, false abovel;
     this.IsTradeSample = isdonation;  //6/30/22 tests
     // "confirmatin required filed??? "
-   // this.IsDonation = isdonation;  // same as trade sample;
+    // this.IsDonation = isdonation;  // same as trade sample;
     this.ProductRequiresRemediation = false;
     this.UseSameItem = true;  //fixed. 
     this.ActualDate = datestr;  // YYYY-MM-DD
-    this.Ingredients = [{ "Package": parenttag, "Quantity": qty, "UnitOFMeasure": "Each"}]
+    this.Ingredients = [{ "Package": parenttag, "Quantity": qty, "UnitOFMeasure": "Each" }]
+    if (isflower) //3/25/23
+        this.Ingredients = [{ "Package": parenttag, "Quantity": qty, "UnitOFMeasure": "Gram" }]
 }
 
 module.exports = {

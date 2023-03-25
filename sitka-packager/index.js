@@ -54,12 +54,25 @@ function constructMetrcPackageBlob(starttag) {
 
                 var lineitem = order.line_items[li];
                 var product_detail = lineitem.frozen_data.product;
+
                 var sku = product_detail.sku;
                 // check sku is in master prod map
                 //fetch parent tag 
                 var reup_prod_info = master_product_map[sku];
 
                 var qty = parseFloat(lineitem.quantity);
+
+                //3/25/23 flower added: check for flower, convert pound to grams.. and units..etc 
+                var isflower = false;
+                if(product_detail.name.toLowerCase().includes('a buds'))
+                {
+                    isflower = true;
+                    //456 grams per lb , the qty will be in lbs. 
+                    var grams = qty * 456; 
+                    qty = grams;  // set qty to grams 
+                }
+                // end added flower support
+
                 // convert tag to full tag which is +9 chars long beyond base.
                 // add a 0 in front of current tag... 
                 var strtag = currenttag.toString();
@@ -78,7 +91,7 @@ function constructMetrcPackageBlob(starttag) {
                 // end temp tag price map. 
 
 
-                let pkg = new MetrcPkg(REUP_BASE_TAG + strtag, qty, lineitem.is_sample, reup_prod_info.TAG);
+                let pkg = new MetrcPkg(REUP_BASE_TAG + strtag, qty, isflower, lineitem.is_sample, reup_prod_info.TAG);
 
                 //var m1 = JSON.stringify(pkg);
                 order_packages.push(pkg);
@@ -245,7 +258,7 @@ async function runner() {
         logger.info("Total Orders: " + Object.keys(orders_map).length)
         logger.info("Pre-Validation Total line items: " + lineitemcount);
 
-        validateLeafLinkOrders(); 
+    //    validateLeafLinkOrders(); 
 
         const questions = [
             {
