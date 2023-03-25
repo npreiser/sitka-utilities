@@ -40,8 +40,8 @@ var utils = module.exports = {
                 SKU_ML_SHEET_RANGE = "Products!A1:C5";
             }
             else {
-                spreadsheetId = "1fKVhIlVDRXbpueHxG9rL2AowXtIrzidUAyylLIAMjqs";  // test sheet sitka_testdata1
-                SKU_ML_SHEET_RANGE = "SKU Master List!A1:C350";
+                spreadsheetId = "1fKVhIlVDRXbpueHxG9rL2AowXtIrzidUAyylLIAMjqs";  // 
+                SKU_ML_SHEET_RANGE = "SKU Master List!A1:C1000"; // 350";
             }
 
             var OMIT_SKU_SHEET_RANGE = "Omit SKUs!A1:B50";
