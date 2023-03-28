@@ -123,6 +123,8 @@ function validateLeafLinkOrders() {
     // Validate all line items are in the inventory list 
     logger.info("Validating all order line items against the Master SKU LIST, and Transporter(SalesRep Names) are valid");
     var lineitem_omitted_count = 0;
+
+   
     for (var key in orders_map) {  // for each accepted order,
         var order = orders_map[key]
 
@@ -151,7 +153,6 @@ function validateLeafLinkOrders() {
                 lineitem_omitted_count++;
                 continue;
             }
-
 
             // check sku is in master prod map
             if (master_product_map[sku] == undefined) {
@@ -271,7 +272,7 @@ async function runner() {
         logger.info("Total Orders: " + Object.keys(orders_map).length)
         logger.info("Pre-Validation Total line items: " + lineitemcount);
 
-        //    validateLeafLinkOrders(); 
+        validateLeafLinkOrders(); 
 
         const questions = [
             {
