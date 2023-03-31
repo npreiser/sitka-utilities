@@ -19,11 +19,11 @@ jobs:
           dest: ${{env.NOW}}
 
       - name: Upload a file to Google Drive
-        uses: adityak74/google-drive-upload-git-action@main
+        uses: willo32/google-drive-upload-action@v1
         with:
-           filename: ${{ github.workspace }}/${{env.NOW}}
+           target: ${{ github.workspace }}/${{env.NOW}}
            credentials: ${{ secrets.SITKA_GDRIVE }}
-           folderId: 1yVFpdh9j5RKrSg9hiJUV2PPtMktw7jNT
+           parent_folder_id: 1r0bYuj6rIppPwPyvyYnww41ELKqQoUTR
            
       # - uses: actions/upload-artifact@v1
       #  with:
