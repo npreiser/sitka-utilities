@@ -11,15 +11,18 @@ jobs:
         run: echo "NOW=$(date +'%Y%m%dT_%H_%M_%S')" >> $GITHUB_ENV
       - name: Echo current date
         run: echo $NOW 
-        
+      - name: Create file name
+        env:
+          RELEASE_NAME: sitka-packager-${{ env.NOW }}.zip
+          
       - uses: actions/checkout@v2
       - uses: vimtor/action-zip@v1
         with:
           files: sitka-packager/ 
-          dest: sitka-packager_${{NOW}}.zip
+          dest: $RELEASE_NAME
           
       - uses: actions/upload-artifact@v1
         with:
            name: my-artifact
-           path: ${{ github.workspace }}/result1.zip
+           path: ${{ github.workspace }}/$RELEASE_NAME
       
