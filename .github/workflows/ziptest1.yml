@@ -8,21 +8,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set current date as env variable
-        run: echo "NOW=$(date +'%Y%m%dT_%H_%M_%S')" >> $GITHUB_ENV
+        run: echo "NOW=$(date +'%Y%m%dT_%H_%M_%S').zip" >> $GITHUB_ENV
       - name: Echo current date
         run: echo $NOW 
-      - name: Create file name
-        env:
-          RELEASE_NAME: sitka-packager-${{ env.NOW }}.zip
-          
+
       - uses: actions/checkout@v2
       - uses: vimtor/action-zip@v1
         with:
           files: sitka-packager/ 
-          dest: $RELEASE_NAME
+          dest: ${{env.NOW}}
           
       - uses: actions/upload-artifact@v1
         with:
            name: my-artifact
-           path: ${{ github.workspace }}/$RELEASE_NAME
+           path: ${{ github.workspace }}/${{env.NOW}}
       
