@@ -17,9 +17,16 @@ jobs:
         with:
           files: sitka-packager/ 
           dest: ${{env.NOW}}
-          
-      - uses: actions/upload-artifact@v1
+
+      - name: Upload a file to Google Drive
+        uses: willo32/google-drive-upload-action@v1
         with:
-           name: my-artifact
-           path: ${{ github.workspace }}/${{env.NOW}}
+           target: ${{env.NOW}}
+           credentials: ${{ secrets.SITKA_GDRIVE }}
+           parent_folder_id: "1eIb837AErqhjWhC0BJqjRKeLAwhrErTG"
+           
+      # - uses: actions/upload-artifact@v1
+      #  with:
+      #     name: my-artifact
+      #     path: ${{ github.workspace }}/${{env.NOW}}
       
