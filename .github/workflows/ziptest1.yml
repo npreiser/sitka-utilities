@@ -23,7 +23,7 @@ jobs:
         with:
            filename: ${{ github.workspace }}/${{env.NOW}}
            credentials: ${{ secrets.SITKA_GDRIVE }}
-           folderId: "1eIb837AErqhjWhC0BJqjRKeLAwhrErTG"
+           folderId: 1yVFpdh9j5RKrSg9hiJUV2PPtMktw7jNT
            
       # - uses: actions/upload-artifact@v1
       #  with:
