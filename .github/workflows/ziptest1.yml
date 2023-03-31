@@ -16,7 +16,7 @@ jobs:
       - uses: vimtor/action-zip@v1
         with:
           files: sitka-packager/ 
-          dest: sitka-packager_$NOW.zip
+          dest: sitka-packager_${{NOW}}.zip
           
       - uses: actions/upload-artifact@v1
         with:
