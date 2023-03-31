@@ -7,11 +7,17 @@ jobs:
   zip-files:
     runs-on: ubuntu-latest
     steps:
+      - uses: szenius/set-timezone@v1.2
+        with:
+          timezoneLinux: "America/Los_Angeles"
+          
       - name: Set current date as env variable
-        run: echo "NOW=sitka-packager-$(date +'%Y%m%dT_%H_%M_%S').zip" >> $GITHUB_ENV
+        run: echo "NOW=sitka-packager-$(date +'%Y%m%d_%H_%M_%S').zip" >> $GITHUB_ENV
       - name: Echo current date
         run: echo $NOW 
-
+        
+      
+          
       - uses: actions/checkout@v2
       - uses: vimtor/action-zip@v1
         with:
@@ -23,7 +29,7 @@ jobs:
         with:
            target: ${{ github.workspace }}/${{env.NOW}}
            credentials: ${{ secrets.SITKA_GDRIVE }}
-           parent_folder_id: 1r0bYuj6rIppPwPyvyYnww41ELKqQoUTR
+           parent_folder_id: 1eIb837AErqhjWhC0BJqjRKeLAwhrErTG
            
       # - uses: actions/upload-artifact@v1
       #  with:
