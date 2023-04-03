@@ -9,7 +9,7 @@ function MetrcPackage(tag, qty, isflower, isdonation, parenttag) {
     this.Quantity = qty;
     this.UnitOfMeasure = "Each"; 
     if (isflower) //3/25/23
-        this.UnitOfMeasure = "Gram";  //support for flower 
+        this.UnitOfMeasure = "Grams";  //support for flower 
 
     this.PatientLicenseNumber = ""; //blank
     this.Note = ""; //blank;
@@ -23,7 +23,7 @@ function MetrcPackage(tag, qty, isflower, isdonation, parenttag) {
     this.ActualDate = datestr;  // YYYY-MM-DD
     this.Ingredients = [{ "Package": parenttag, "Quantity": qty, "UnitOFMeasure": "Each" }]
     if (isflower) //3/25/23
-        this.Ingredients = [{ "Package": parenttag, "Quantity": qty, "UnitOFMeasure": "Gram" }]
+        this.Ingredients = [{ "Package": parenttag, "Quantity": qty, "UnitOFMeasure": "Grams" }]
 }
 
 module.exports = {
