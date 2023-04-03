@@ -72,9 +72,18 @@ function constructMetrcPackageBlob(starttag) {
                 var isflower = false;
                 if (product_detail.name.toLowerCase().includes('a buds')) {
                     isflower = true;
-                    //456 grams per lb , the qty will be in lbs. 
-                    var grams = qty * 456;
-                    qty = grams;  // set qty to grams 
+                    //456 grams per lb , the qty will be in lbs.
+                    // Normal order come ins as qty in lbs,  but trade samples are in multiples of 3.5grams,,, (3.5 grams )  
+                    if(lineitem.is_sample)  //4/3/23 (if its trade sample, then its already in grams, do not convert. )
+                    {
+                        // trade sample, convert * 3.5 g. 
+                        qty = qty * 3.5; 
+                    }
+                    else
+                    {   // normal order, convert lb to grams
+                        var grams = qty * 456;
+                        qty = grams;  // set qty to grams 
+                    }
                 }
                 // end added flower support
 
