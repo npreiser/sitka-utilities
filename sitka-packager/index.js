@@ -81,7 +81,7 @@ function constructMetrcPackageBlob(starttag) {
                     }
                     else
                     {   // normal order, convert lb to grams
-                        var grams = qty * 456;
+                        var grams = qty * 454;  //4/4/23 changed from 456
                         qty = grams;  // set qty to grams 
                     }
                 }
