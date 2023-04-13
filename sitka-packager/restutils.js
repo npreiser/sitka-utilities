@@ -1,6 +1,6 @@
 var axios = require('axios');
 const { google } = require('googleapis');
-const auth2 = require('./auth/auth_other.json');
+const auth2 = require('../auth/auth_other.json');
 const LEAFLINK_HOST = "https://www.leaflink.com/api/v2";
 const LEAFLINK_API_KEY = auth2.ll_apikey;
 const METRC_HOST = "https://api-or.metrc.com";
@@ -20,7 +20,7 @@ var utils = module.exports = {
        
         try {
             const auth = new google.auth.GoogleAuth({
-                keyFile: "./auth/auth_google.json", // "keys.json", //the key file
+                keyFile: "../auth/auth_google.json", // "keys.json", //the key file
                 //url to spreadsheets API
                 scopes: "https://www.googleapis.com/auth/spreadsheets",
             });
