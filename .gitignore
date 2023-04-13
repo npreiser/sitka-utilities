@@ -1,0 +1,6 @@
+.vscode
+auth
+node_modules
+*.zip
+logs
+tag_printer_data
