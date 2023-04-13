@@ -40,6 +40,9 @@ var temp_tag_price_map = undefined; // tag: price map for transfer mapping
 temp_tag_price_map = new Object();
 // This function creates all the blobs per order , starting at start tag.
 // the blobs are placed into the order_map, on a per order  
+
+
+
 function constructMetrcPackageBlob(starttag) {
 
     logger.info("Based on start tag, building payloads for each line item in each order now.")
@@ -77,11 +80,12 @@ function constructMetrcPackageBlob(starttag) {
                     if(lineitem.is_sample)  //4/3/23 (if its trade sample, then its already in grams, do not convert. )
                     {
                         // trade sample, convert * 3.5 g. 
-                        qty = qty * 3.5; 
+                        qty = Math.round(qty * 3.5); 
                     }
                     else
-                    {   // normal order, convert lb to grams
-                        var grams = qty * 454;  //4/4/23 changed from 456
+                    {   // normal order, convert lb to grams  
+                      // 4/13/23 added round up to nearest whole number  (allison)
+                        var grams = Math.round(qty * 454);  //4/4/23 changed from 456
                         qty = grams;  // set qty to grams 
                     }
                 }
