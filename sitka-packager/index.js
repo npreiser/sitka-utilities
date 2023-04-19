@@ -51,7 +51,7 @@ function constructMetrcPackageBlob(starttag) {
     // label data files for PRINTER 3/25/23
     var now = moment().format("YYYYMMDD_HHmmss");
     var fname_labels = now + "_" + starttag + ".csv"
-    fs.appendFileSync("./tag_printer_data/" + fname_labels, "tag, product name, qty" + "\r\n");  //create file with header
+    fs.appendFileSync("./tag_printer_data/" + fname_labels, "Item,Quantity,UID" + "\r\n");  //create file with header
 
     for (var key in orders_map) {  // for each accepted order,
         try {
@@ -115,7 +115,7 @@ function constructMetrcPackageBlob(starttag) {
                 order_packages.push(pkg);
 
                 // 3/23/25 append label file with data 
-                fs.appendFileSync("./tag_printer_data/" + fname_labels, REUP_BASE_TAG + strtag + "," + product_detail.name + "," +qty + "\r\n"); 
+                fs.appendFileSync("./tag_printer_data/" + fname_labels,product_detail.name + "," + qty + ","+ REUP_BASE_TAG + strtag + "\r\n"); 
 
 
                 currenttag++;  // inc tag number 
@@ -192,6 +192,9 @@ function extractItemSkus(item) {
     return item.frozen_data.product.sku;
 }
 async function runner() {
+
+   //restutils.getMetrcPackageByTag("bla", undefined); // for future.
+
 
     try {
         // create/empty the manifests folder
