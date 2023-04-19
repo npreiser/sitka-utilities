@@ -80,7 +80,7 @@ function constructMetrcPackageBlob(starttag) {
                     if(lineitem.is_sample)  //4/3/23 (if its trade sample, then its already in grams, do not convert. )
                     {
                         // trade sample, convert * 3.5 g. 
-                        qty = Math.round(qty * 3.5); 
+                        qty = qty * 3.5; 
                     }
                     else
                     {   // normal order, convert lb to grams  
