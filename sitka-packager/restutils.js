@@ -216,7 +216,7 @@ var utils = module.exports = {
             });
     }, 
 
-    // just a test for now.. returns array 
+    
     createMetrcTransfer: async function (packagedata, callback) {
         var config = {
             method: 'post',
@@ -226,6 +226,38 @@ var utils = module.exports = {
                 'Authorization': token
             },
             data: [packagedata]
+        };
+
+        await axios(config)
+            .then(function (response) {
+                if (response.status == 200) {
+                    if (response != null && response.statusText == "OK") {
+                        callback("success");
+                    }
+                    else
+                        throw new Error("Creating Metrc Transfer: " + "Unkown Error");
+                }
+                else {
+                    throw new Error("Creating Metrc Transfer: " + "Bad status code: " + response.status);
+                }
+            })
+            .catch(function (error) {
+                if (error.response != undefined && error.response.data != undefined)
+                    throw new Error("Creating Metrc Transfer: " + JSON.stringify(error.response.data, null, 2));
+                else
+                    throw new Error("Creating Metrc Transfer: " + error);
+
+            });
+    },
+
+    getMetrcPackageByTag: async function (tag, callback) {
+        var config = {
+            method: 'get',
+            url: METRC_HOST + '/packages/v1/1A401030003F86A000058109?licenseNumber=' + METRC_LICENSE_NUMBER,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token
+            },
         };
 
         await axios(config)
