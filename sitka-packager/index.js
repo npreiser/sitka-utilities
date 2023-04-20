@@ -101,7 +101,7 @@ function constructMetrcPackageBlob(starttag) {
                 // create a temp tag:price map,  this is used so that we can map tags to total price when 
                 // creating the transfer templates.  The price is not part of the normal metrc payload so we 
                 //have to have it seperated, 
-                var price = lineitem.sale_price.amount * (lineitem.quantity/10); //changed from bluk units on 4/13/23 lineitem.bulk_units;
+                var price = lineitem.sale_price.amount * (lineitem.quantity/lineitem.unit_multiplier); //changed from bluk units on 4/13/23 lineitem.bulk_units;
                 if (lineitem.is_sample)
                     price = ".01";  // have to have value > 00. for metrc. 
 
