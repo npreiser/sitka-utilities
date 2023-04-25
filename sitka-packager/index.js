@@ -77,14 +77,13 @@ function constructMetrcPackageBlob(starttag) {
                     isflower = true;
                     //456 grams per lb , the qty will be in lbs.
                     // Normal order come ins as qty in lbs,  but trade samples are in multiples of 3.5grams,,, (3.5 grams )  
-                    if(lineitem.is_sample)  //4/3/23 (if its trade sample, then its already in grams, do not convert. )
+                    if (lineitem.is_sample)  //4/3/23 (if its trade sample, then its already in grams, do not convert. )
                     {
                         // trade sample, convert * 3.5 g. 
-                        qty = qty * 3.5; 
+                        qty = qty * 3.5;
                     }
-                    else
-                    {   // normal order, convert lb to grams  
-                      // 4/13/23 added round up to nearest whole number  (allison)
+                    else {   // normal order, convert lb to grams  
+                        // 4/13/23 added round up to nearest whole number  (allison)
                         var grams = Math.round(qty * 454);  //4/4/23 changed from 456
                         qty = grams;  // set qty to grams 
                     }
@@ -101,7 +100,7 @@ function constructMetrcPackageBlob(starttag) {
                 // create a temp tag:price map,  this is used so that we can map tags to total price when 
                 // creating the transfer templates.  The price is not part of the normal metrc payload so we 
                 //have to have it seperated, 
-                var price = lineitem.sale_price.amount * (lineitem.quantity/lineitem.unit_multiplier); //changed from bluk units on 4/13/23 lineitem.bulk_units;
+                var price = lineitem.sale_price.amount * (lineitem.quantity / lineitem.unit_multiplier); //changed from bluk units on 4/13/23 lineitem.bulk_units;
                 if (lineitem.is_sample)
                     price = ".01";  // have to have value > 00. for metrc. 
 
@@ -115,7 +114,7 @@ function constructMetrcPackageBlob(starttag) {
                 order_packages.push(pkg);
 
                 // 3/23/25 append label file with data 
-                fs.appendFileSync("./tag_printer_data/" + fname_labels,product_detail.name + "," + qty + ","+ REUP_BASE_TAG + strtag + "\r\n"); 
+                fs.appendFileSync("./tag_printer_data/" + fname_labels, product_detail.name + "," + qty + "," + REUP_BASE_TAG + strtag + "\r\n");
 
 
                 currenttag++;  // inc tag number 
@@ -132,12 +131,14 @@ function constructMetrcPackageBlob(starttag) {
 }
 
 
-function validateLeafLinkOrders() {
+
+
+async function validateLeafLinkOrders() {
     // Validate all line items are in the inventory list 
     logger.info("Validating all order line items against the Master SKU LIST, and Transporter(SalesRep Names) are valid");
     var lineitem_omitted_count = 0;
 
-   
+
     for (var key in orders_map) {  // for each accepted order,
         var order = orders_map[key]
 
@@ -157,6 +158,7 @@ function validateLeafLinkOrders() {
             var product_detail = lineitem.frozen_data.product;
             var sku = product_detail.sku;
 
+            const li_qty = lineitem.quantity;
             //7/16/22 if line item is in the omit list, remove the item from order
             if (omit_skus_map[sku] != undefined) // sku for this line item is in the omit map... 
             {
@@ -171,7 +173,49 @@ function validateLeafLinkOrders() {
             if (master_product_map[sku] == undefined) {
                 throw new Error("From order: " + order.short_id + " could not find sku: " + sku + "  name: " + product_detail.name + " in Google Master sheet")
             }
-        }
+
+
+            // 4/25/23,  call metrc to get parent tag  to test if we have enought qty in stock
+            logger.info("Checking line item qty against current stock in Metrc");
+            var prod_parent_tag = master_product_map[sku].TAG;
+            // fetch the skus data from metrc, 
+            await restutils.getMetrcPackageByTag(prod_parent_tag, function (status, data) {
+
+                var qty_order = parseFloat(lineitem.quantity);
+                //3/25/23 flower added: check for flower, convert pound to grams.. other is in units..etc 
+                var isflower = false;
+                if (product_detail.name.toLowerCase().includes('a buds')) {
+                    isflower = true;
+                    //456 grams per lb , the qty will be in lbs.
+                    // Normal order come ins as qty in lbs,  but trade samples are in multiples of 3.5grams,,, (3.5 grams )  
+                    if (lineitem.is_sample)  // (if its trade sample, then its already in grams, do not convert. )
+                    {
+                        // trade sample, convert * 3.5 g. 
+                        qty_order = qty_order * 3.5;
+                    }
+                    else {   // normal order, convert lb to grams  
+                        // 4/13/23 added round up to nearest whole number  (allison)
+                        var grams = Math.round(qty_order * 454);  //4/4/23 changed from 456
+                        qty_order = grams;  // set qty to grams 
+                    }
+                }
+               
+                // Now test the value against what is in stock
+                var qty_metrc = data.Quantity;
+
+
+                if(qty_metrc < qty_order )
+                {
+                    // fail. not enough stock , 
+                    throw new Error("From order: " + order.short_id + " sku: " + sku + "  name: " + product_detail.name + " not enough in stock, please check Metrc Stock\n")
+                }
+                // note that units in metrc don't match leaflink,  
+                // for flower,  LL is in pounds,  metrc is in grams. 
+               
+
+            }); //end callback on get parent qty 
+
+        } //end line item iter
 
         // debug print revised sku list: 
         var skulist2 = order.line_items.map(extractItemSkus)
@@ -193,7 +237,6 @@ function extractItemSkus(item) {
 }
 async function runner() {
 
-   //restutils.getMetrcPackageByTag("bla", undefined); // for future.
 
 
     try {
@@ -288,7 +331,10 @@ async function runner() {
         logger.info("Total Orders: " + Object.keys(orders_map).length)
         logger.info("Pre-Validation Total line items: " + lineitemcount);
 
-        validateLeafLinkOrders(); 
+        //   await fetchRequiredParentTags();
+
+
+        await validateLeafLinkOrders();   // changed to async on 4/25/23
 
         const questions = [
             {

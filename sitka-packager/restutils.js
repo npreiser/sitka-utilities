@@ -253,7 +253,7 @@ var utils = module.exports = {
     getMetrcPackageByTag: async function (tag, callback) {
         var config = {
             method: 'get',
-            url: METRC_HOST + '/packages/v1/1A401030003F86A000058109?licenseNumber=' + METRC_LICENSE_NUMBER,
+            url: METRC_HOST + '/packages/v1/'+tag+'?licenseNumber=' + METRC_LICENSE_NUMBER,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': token
@@ -264,20 +264,20 @@ var utils = module.exports = {
             .then(function (response) {
                 if (response.status == 200) {
                     if (response != null && response.statusText == "OK") {
-                        callback("success");
+                        callback("success", response.data);
                     }
                     else
-                        throw new Error("Creating Metrc Transfer: " + "Unkown Error");
+                        throw new Error("Fetching Metrc Tag");
                 }
                 else {
-                    throw new Error("Creating Metrc Transfer: " + "Bad status code: " + response.status);
+                    throw new Error("Fetching Metrc Tag: " + "Bad status code: " + response.status);
                 }
             })
             .catch(function (error) {
                 if (error.response != undefined && error.response.data != undefined)
-                    throw new Error("Creating Metrc Transfer: " + JSON.stringify(error.response.data, null, 2));
+                    throw new Error("Fetching Metrc Tag: " + JSON.stringify(error.response.data, null, 2));
                 else
-                    throw new Error("Creating Metrc Transfer: " + error);
+                    throw new Error("Generic Error: \n" + error);
 
             });
     }
