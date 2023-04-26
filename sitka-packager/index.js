@@ -207,7 +207,7 @@ async function validateLeafLinkOrders() {
                 if(qty_metrc < qty_order )
                 {
                     // fail. not enough stock , 
-                    throw new Error("From order: " + order.short_id + " sku: " + sku + "  name: " + product_detail.name + " not enough in stock, please check Metrc Stock\n")
+                    throw new Error("Order: " + order.short_id + " sku: " + sku + "  name: " + product_detail.name + "tag: " + prod_parent_tag +  "  not enough in stock, please check Metrc Stock -- qty_metrc: " + qty_metrc + " qty_order: " + qty_order + "\n")
                 }
                 // note that units in metrc don't match leaflink,  
                 // for flower,  LL is in pounds,  metrc is in grams. 
