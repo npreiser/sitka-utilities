@@ -41,6 +41,28 @@ temp_tag_price_map = new Object();
 // This function creates all the blobs per order , starting at start tag.
 // the blobs are placed into the order_map, on a per order  
 
+//4/26/23
+var temp_stock_qty_map = undefined; // qty map for checking inventory. 
+temp_stock_qty_map = new Object();
+
+function convertQuantity(qty, is_sample, prod_name)
+{
+    // only convert flower, 
+    var ret_qty = qty;
+    if (prod_name.toLowerCase().includes('a buds')) { 
+        if (is_sample)  
+        {
+            // trade sample, convert * 3.5 g. 
+            ret_qty = ret_qty * 3.5;
+        }
+        else {   // normal order, convert lb to grams  
+            //  round up to nearest whole number  (allison)
+            var grams = Math.round(ret_qty * 454);  //454 g per pound
+            ret_qty = grams;  // set qty to grams 
+        }   
+    }
+    return ret_qty;
+}
 
 
 function constructMetrcPackageBlob(starttag) {
@@ -71,22 +93,25 @@ function constructMetrcPackageBlob(starttag) {
 
                 var qty = parseFloat(lineitem.quantity);
 
+
+
+                qty = convertQuantity(qty, lineitem.is_sample, product_detail.name);
                 //3/25/23 flower added: check for flower, convert pound to grams.. and units..etc 
                 var isflower = false;
                 if (product_detail.name.toLowerCase().includes('a buds')) {
                     isflower = true;
                     //456 grams per lb , the qty will be in lbs.
                     // Normal order come ins as qty in lbs,  but trade samples are in multiples of 3.5grams,,, (3.5 grams )  
-                    if (lineitem.is_sample)  //4/3/23 (if its trade sample, then its already in grams, do not convert. )
-                    {
+                    //if (lineitem.is_sample)  //4/3/23 (if its trade sample, then its already in grams, do not convert. )
+                   // {
                         // trade sample, convert * 3.5 g. 
-                        qty = qty * 3.5;
-                    }
-                    else {   // normal order, convert lb to grams  
+                    //    qty = qty * 3.5;
+                   // }
+                    //else {   // normal order, convert lb to grams  
                         // 4/13/23 added round up to nearest whole number  (allison)
-                        var grams = Math.round(qty * 454);  //4/4/23 changed from 456
-                        qty = grams;  // set qty to grams 
-                    }
+                     //   var grams = Math.round(qty * 454);  //4/4/23 changed from 456
+                      //  qty = grams;  // set qty to grams 
+                   // }
                 }
                 // end added flower support
 
@@ -179,42 +204,33 @@ async function validateLeafLinkOrders() {
             logger.info("Checking line item qty against current stock in Metrc");
             var prod_parent_tag = master_product_map[sku].TAG;
             // fetch the skus data from metrc, 
-            await restutils.getMetrcPackageByTag(prod_parent_tag, function (status, data) {
-
-                var qty_order = parseFloat(lineitem.quantity);
-                //3/25/23 flower added: check for flower, convert pound to grams.. other is in units..etc 
-                var isflower = false;
-                if (product_detail.name.toLowerCase().includes('a buds')) {
-                    isflower = true;
-                    //456 grams per lb , the qty will be in lbs.
-                    // Normal order come ins as qty in lbs,  but trade samples are in multiples of 3.5grams,,, (3.5 grams )  
-                    if (lineitem.is_sample)  // (if its trade sample, then its already in grams, do not convert. )
-                    {
-                        // trade sample, convert * 3.5 g. 
-                        qty_order = qty_order * 3.5;
-                    }
-                    else {   // normal order, convert lb to grams  
-                        // 4/13/23 added round up to nearest whole number  (allison)
-                        var grams = Math.round(qty_order * 454);  //4/4/23 changed from 456
-                        qty_order = grams;  // set qty to grams 
-                    }
-                }
-               
-                // Now test the value against what is in stock
-                var qty_metrc = data.Quantity;
-
-
-                if(qty_metrc < qty_order )
-                {
-                    // fail. not enough stock , 
-                    throw new Error("Order: " + order.short_id + " sku: " + sku + "  name: " + product_detail.name + "tag: " + prod_parent_tag +  "  not enough in stock, please check Metrc Stock -- qty_metrc: " + qty_metrc + " qty_order: " + qty_order + "\n")
-                }
-                // note that units in metrc don't match leaflink,  
-                // for flower,  LL is in pounds,  metrc is in grams. 
-               
-
-            }); //end callback on get parent qty 
-
+            // NOTEwe need to keep track of stock qty locally , order may contain same item multiple times 
+            if(temp_stock_qty_map[prod_parent_tag] == undefined)  // if we dont' have qty for this tag,  fetch it from metrc
+            {
+                await restutils.getMetrcPackageByTag(prod_parent_tag, function (status, data) {
+                    // Now test the value against what is in stock
+                    var qty_metrc = data.Quantity;
+                    temp_stock_qty_map[prod_parent_tag] = qty_metrc;  // store the value we just got back from metric for this tag. 
+                }); //end callback on get parent qty 
+            }
+           
+            // this is the current amount taking into account order/line items on this run of the tool 
+            var qty_current_stock = temp_stock_qty_map[prod_parent_tag];  // pull existing 
+            var qty_order = parseFloat(lineitem.quantity);
+            qty_order = convertQuantity(qty_order, lineitem.is_sample, product_detail.name);  //convert if flower/sample
+            
+           // qty_order = 5  for debug
+            if( qty_order > qty_current_stock)
+            {
+                // fail. not enough stock , 
+                throw new Error("Order: " + order.short_id + " sku: " + sku + "  name: " + product_detail.name + "tag: " + prod_parent_tag +  "  not enough in stock, please check Metrc Stock -- qty_metrc: " + qty_metrc + " qty_order: " + qty_order + "\n")
+            }
+            else
+            {
+                // deduct the amount of the line item order from the stock.. 
+                temp_stock_qty_map[prod_parent_tag] -= qty_order; //
+            }
+         
         } //end line item iter
 
         // debug print revised sku list: 
