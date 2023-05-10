@@ -201,8 +201,8 @@ async function validateLeafLinkOrders() {
 
 
             // 4/25/23,  call metrc to get parent tag  to test if we have enought qty in stock
-            logger.info("Checking line item qty against current stock in Metrc");
             var prod_parent_tag = master_product_map[sku].TAG;
+           
             // fetch the skus data from metrc, 
             // NOTEwe need to keep track of stock qty locally , order may contain same item multiple times 
             if(temp_stock_qty_map[prod_parent_tag] == undefined)  // if we dont' have qty for this tag,  fetch it from metrc
@@ -214,6 +214,8 @@ async function validateLeafLinkOrders() {
                 }); //end callback on get parent qty 
             }
            
+            logger.info("Checking Metrc Stock on SKU/TAG: " + sku + " / "+ prod_parent_tag);
+
             // this is the current amount taking into account order/line items on this run of the tool 
             var qty_current_stock = temp_stock_qty_map[prod_parent_tag];  // pull existing 
             var qty_order = parseFloat(lineitem.quantity);
@@ -223,7 +225,7 @@ async function validateLeafLinkOrders() {
             if( qty_order > qty_current_stock)
             {
                 // fail. not enough stock , 
-                throw new Error("Order: " + order.short_id + " sku: " + sku + "  name: " + product_detail.name + "tag: " + prod_parent_tag +  "  not enough in stock, please check Metrc Stock -- qty_metrc: " + qty_metrc + " qty_order: " + qty_order + "\n")
+                throw new Error("Order: " + order.short_id + " sku: " + sku + "  name: " + product_detail.name + "tag: " + prod_parent_tag +  "\n  not enough in stock, please check Metrc Stock or trade sample flag on order -- \n  metrc stock: " + qty_current_stock + " qty_order: " + qty_order + "\n")
             }
             else
             {
